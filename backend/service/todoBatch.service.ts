@@ -16,7 +16,7 @@ export const processExpiredTodos = async () => {
   //  만료된 pending 투두 찾기
   const expiredTodos = await prisma.todos.findMany({
     where: {
-      status: 'pending',
+      status: { in: ['pending', 'retry', 'archive'] },
       date: { lte: todayKST }, // 오늘까지 포함
     },
   });
@@ -34,8 +34,8 @@ export const processExpiredTodos = async () => {
       prisma.todos.update({
         where: { id: todo.id },
         data: {
-          status: 'retry',
-          retryCount: { increment: 1 }, // retryCount 필드가 없으면 에러
+          status: todo.status === 'archive' ? 'archive' : 'retry',
+          retryCount: { increment: 1 },
           date: getKSTDateString(addDays(now, 1)),
         },
       })
