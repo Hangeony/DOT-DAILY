@@ -17,10 +17,26 @@ import { useDateStore } from "@/store/useDateStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast/ToastProvider";
 import { useConfirm } from "@/components/ui/Modal/providers/ModalProvider";
+import { useAuthStore } from "@/store/useAuthStore";
+
+// 공통 Task 인터페이스 (Task와 GuestTask를 모두 포함)
+interface CommonTask {
+  id: string | number;
+  title: string;
+  priority: "must" | "should" | "remind";
+  date: string;
+  createdAt: string;
+  updatedAt?: string;
+  // Task의 경우
+  status?: "pending" | "success" | "retry" | "archive";
+  retryCount?: number;
+  // GuestTask의 경우
+  completed?: boolean;
+}
 
 interface TaskItemProps {
-  task: Task;
-  onEdit?: (task: Task) => void;
+  task: CommonTask;
+  onEdit?: (task: CommonTask) => void;
 }
 
 // 완료 시 파티클 효과 컴포넌트 - 메모이제이션 적용
@@ -89,8 +105,68 @@ const TaskItem = React.memo(function TaskItem({
   const { showToast } = useToast();
   const [showParticles, setShowParticles] = useState(false);
   const confirm = useConfirm();
+  const { isGuest } = useAuthStore();
+
+  // 게스트 모드용 로컬 스토리지 함수들
+  const updateGuestTaskStatus = (taskId: string, completed: boolean) => {
+    const dateStr = selectedDate.toISOString().split("T")[0];
+    const stored = localStorage.getItem(`guest-tasks-${dateStr}`);
+    if (stored) {
+      try {
+        const tasks = JSON.parse(stored);
+        const updatedTasks = tasks.map((t: Record<string, unknown>) => 
+          t.id === taskId ? { ...t, completed } : t
+        );
+        localStorage.setItem(`guest-tasks-${dateStr}`, JSON.stringify(updatedTasks));
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  };
+
+  const deleteGuestTask = (taskId: string) => {
+    const dateStr = selectedDate.toISOString().split("T")[0];
+    const stored = localStorage.getItem(`guest-tasks-${dateStr}`);
+    if (stored) {
+      try {
+        const tasks = JSON.parse(stored);
+        const updatedTasks = tasks.filter((t: Record<string, unknown>) => t.id !== taskId);
+        localStorage.setItem(`guest-tasks-${dateStr}`, JSON.stringify(updatedTasks));
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  };
 
   const handleToggleStatus = async () => {
+    if (isGuest) {
+      // 게스트 모드: 로컬 스토리지 업데이트
+      const taskId = task.id as string;
+      const currentCompleted = task.completed || false;
+      const newCompleted = !currentCompleted;
+      
+      if (updateGuestTaskStatus(taskId, newCompleted)) {
+        // 페이지 새로고침으로 상태 업데이트
+        window.location.reload();
+        
+        if (newCompleted) {
+          setShowParticles(true);
+          setTimeout(() => setShowParticles(false), 1000);
+          showToast("할 일을 완료했습니다! 🎉");
+        } else {
+          showToast("할 일 완료가 취소되었습니다.");
+        }
+      } else {
+        showToast("상태 변경에 실패했습니다 😞");
+      }
+      return;
+    }
+
+    // 인증된 사용자: 서버 API 사용
     const originalStatus = task.status;
 
     try {
@@ -100,7 +176,7 @@ const TaskItem = React.memo(function TaskItem({
         title: task.title,
       });
 
-      const updatedTask = await toggleTaskStatus(task.id, originalStatus);
+      const updatedTask = await toggleTaskStatus(task.id as number, originalStatus!);
 
       console.log("✅ 서버 응답:", {
         id: updatedTask.id,
@@ -141,8 +217,21 @@ const TaskItem = React.memo(function TaskItem({
     const confirmed = await confirm("정말로 이 할 일을 삭제하시겠습니까?");
     if (!confirmed) return;
 
+    if (isGuest) {
+      // 게스트 모드: 로컬 스토리지에서 삭제
+      const taskId = task.id as string;
+      if (deleteGuestTask(taskId)) {
+        window.location.reload();
+        showToast("할 일이 삭제되었습니다 🗑️");
+      } else {
+        showToast("할 일 삭제에 실패했습니다 😞");
+      }
+      return;
+    }
+
+    // 인증된 사용자: 서버 API 사용
     try {
-      await deleteTask(task.id);
+      await deleteTask(task.id as number);
 
       const dateKey = selectedDate.toISOString().split("T")[0];
       queryClient.setQueryData(["tasks", dateKey], (old: Task[]) => {
@@ -157,11 +246,16 @@ const TaskItem = React.memo(function TaskItem({
   };
 
   const handlePostpone = async () => {
+    if (isGuest) {
+      showToast("게스트 모드에서는 보류 기능을 사용할 수 없습니다. 로그인해주세요.");
+      return;
+    }
+
     const confirmed = await confirm("이 할 일을 보류함으로 이동하시겠습니까?");
     if (!confirmed) return;
 
     try {
-      await moveToArchive(task.id);
+      await moveToArchive(task.id as number);
 
       const dateKey = selectedDate.toISOString().split("T")[0];
       // 1. MyDay 캐시에서 즉시 제거 (optimistic)
@@ -178,15 +272,18 @@ const TaskItem = React.memo(function TaskItem({
     }
   };
 
+  // 완료 상태 확인 (게스트 모드와 인증 모드 모두 지원)
+  const isCompleted = isGuest ? (task.completed || false) : (task.status === "success");
+
   const titleClassName = useMemo(
     () =>
       clsx(
         "text-sm font-medium transition-colors duration-200",
-        task.status === "success"
+        isCompleted
           ? "line-through text-gray-500"
           : "text-gray-900"
       ),
-    [task.status]
+    [isCompleted]
   );
 
   return (
@@ -195,7 +292,7 @@ const TaskItem = React.memo(function TaskItem({
 
       <div className="flex-shrink-0">
         <Checkbox
-          checked={task.status === "success"}
+          checked={isCompleted}
           onCheckedChange={handleToggleStatus}
           variant={task.priority}
         />
@@ -204,7 +301,7 @@ const TaskItem = React.memo(function TaskItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <h3 className={titleClassName}>{task.title}</h3>
-          {task.status === "retry" && (
+          {!isGuest && task.status === "retry" && (
             <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full font-semibold whitespace-nowrap">
               RETRY
             </span>
@@ -247,20 +344,22 @@ const TaskItem = React.memo(function TaskItem({
                   </button>
                 )}
               </Menu.Item>
-              <Menu.Item>
-                {({ active }) => (
-                  <button
-                    onClick={handlePostpone}
-                    className={clsx(
-                      "flex items-center w-full px-4 py-2 text-sm text-text-default transition-colors",
-                      active && "bg-surface-hover"
-                    )}
-                  >
-                    <CalendarClock className="w-4 h-4 mr-2" />
-                    보류
-                  </button>
-                )}
-              </Menu.Item>
+              {!isGuest && (
+                <Menu.Item>
+                  {({ active }) => (
+                    <button
+                      onClick={handlePostpone}
+                      className={clsx(
+                        "flex items-center w-full px-4 py-2 text-sm text-text-default transition-colors",
+                        active && "bg-surface-hover"
+                      )}
+                    >
+                      <CalendarClock className="w-4 h-4 mr-2" />
+                      보류
+                    </button>
+                  )}
+                </Menu.Item>
+              )}
             </div>
           </Menu.Items>
         </Menu>

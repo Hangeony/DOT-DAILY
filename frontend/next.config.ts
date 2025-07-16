@@ -17,6 +17,16 @@ const nextConfig: NextConfig = {
   },
   // 압축 활성화
   compress: true,
+  // Chrome DevTools 요청 처리
+  async redirects() {
+    return [
+      {
+        source: '/.well-known/appspecific/com.chrome.devtools.json',
+        destination: '/',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default withBundleAnalyzer(nextConfig);

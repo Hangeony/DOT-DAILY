@@ -1,7 +1,7 @@
 import axios, { AxiosResponse, InternalAxiosRequestConfig } from "axios";
 
 const BASE_URL = "https://dot-daily.onrender.com/api/v1";
-const DEFAULT_TIMEOUT = 60000;
+const DEFAULT_TIMEOUT = 30000; // 30초로 단축
 
 const isBrowser = () => typeof window !== "undefined";
 
@@ -17,6 +17,21 @@ export const httpClient = axios.create({
 httpClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     if (isBrowser()) {
+      // 게스트 모드인지 확인
+      const authStorage = localStorage.getItem("auth-storage");
+      if (authStorage) {
+        try {
+          const authData = JSON.parse(authStorage);
+          if (authData.state?.isGuest) {
+            // 게스트 모드일 때는 요청을 중단
+            console.log("🚫 게스트 모드: API 요청 중단");
+            return Promise.reject(new Error("Guest mode - API request blocked"));
+          }
+        } catch (e) {
+          console.warn("Auth storage 파싱 실패:", e);
+        }
+      }
+
       const token = localStorage.getItem("accessToken");
       if (token) {
         if (token.startsWith("Bearer ")) {
@@ -51,7 +66,21 @@ httpClient.interceptors.response.use(
 
     if (error.response?.status === 401 && isBrowser()) {
       localStorage.removeItem("accessToken");
-      window.location.href = "/login";
+      // 게스트 모드가 아닐 때만 리다이렉트
+      const authStorage = localStorage.getItem("auth-storage");
+      if (authStorage) {
+        try {
+          const authData = JSON.parse(authStorage);
+          if (!authData.state?.isGuest) {
+            window.location.href = "/"; // 게스트 모드 선택 페이지로 이동
+          }
+        } catch (e) {
+          console.warn("Auth storage 파싱 실패:", e);
+          window.location.href = "/";
+        }
+      } else {
+        window.location.href = "/";
+      }
     }
     console.log("[Axios][Response Error]", error);
     return Promise.reject(error);

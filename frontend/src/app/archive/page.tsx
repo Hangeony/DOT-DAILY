@@ -14,6 +14,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDateStore } from "@/store/useDateStore";
 import BottomSheetModal from "@/components/ui/Modal/components/BottomSheetModal";
 import { useToast } from "@/components/ui/Toast/ToastProvider";
+import { useAuthStore } from "@/store/useAuthStore";
+import { Button } from "@/components/ui/Button/Button";
+import { Lock } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface ArchiveTask {
   id: string;
@@ -32,6 +36,8 @@ export default function ArchivePage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editPriority, setEditPriority] = useState<1 | 2 | 3>(1);
+  const { isGuest } = useAuthStore();
+  const router = useRouter();
 
   // useQuery로 보관함 데이터 불러오기
   const { data: archiveTasks = [], isLoading } = useQuery({
@@ -39,6 +45,7 @@ export default function ArchivePage() {
     queryFn: getArchiveTasks,
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
+    enabled: !isGuest, // 게스트 모드가 아닐 때만 실행
   });
 
   const handleEdit = (id: string) => {
@@ -97,6 +104,88 @@ export default function ArchivePage() {
       showToast("오늘 할 일로 이동에 실패했습니다 😞");
     }
   };
+
+  const handleLogin = () => {
+    router.push('/login');
+  };
+
+  // 게스트 모드일 때 로그인 필요 메시지 표시
+  if (isGuest) {
+    return (
+      <MobileLayout headerTitle="보류함">
+        <div className="px-4 py-6 space-y-6">
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <div className="flex items-center space-x-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center">
+                <Lock className="w-8 h-8 text-white" />
+              </div>
+              <div className="flex-1">
+                <h1 className="text-xl font-bold text-gray-900 mb-1">
+                  보류함 기능
+                </h1>
+                <p className="text-gray-500 text-sm">
+                  로그인하면 보류함 기능을 사용할 수 있어요
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-2xl p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">보류함이란?</h2>
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                <span className="text-gray-700 text-sm">오늘 하기 어려운 할 일을 임시로 보관</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                <span className="text-gray-700 text-sm">나중에 다시 오늘 할 일로 가져올 수 있음</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                <span className="text-gray-700 text-sm">할 일 목록을 깔끔하게 관리</span>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
+                <span className="text-gray-700 text-sm">우선순위에 따라 할 일을 정리</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 rounded-lg p-4 space-y-3">
+            <h3 className="font-kkonghae text-lg text-blue-800">💡 보류함 사용 팁</h3>
+            <ul className="space-y-2 text-sm text-blue-700">
+              <li className="flex items-start gap-2">
+                <span>•</span>
+                <span>오늘 하기 어려운 할 일은 보류함에 보관하세요</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span>•</span>
+                <span>나중에 여유가 있을 때 다시 가져와서 처리하세요</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span>•</span>
+                <span>보류함에서도 할 일을 수정하거나 삭제할 수 있어요</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span>•</span>
+                <span>정말 필요 없는 할 일은 삭제해서 목록을 깔끔하게 유지하세요</span>
+              </li>
+            </ul>
+          </div>
+
+          <Button
+            variant="primary"
+            fullWidth
+            onClick={handleLogin}
+            className="rounded-full py-3 text-lg font-bold"
+          >
+            로그인하고 보류함 사용하기
+          </Button>
+        </div>
+      </MobileLayout>
+    );
+  }
 
   // archiveTasks 데이터를 UI용 형태로 변환
   const today = new Date();

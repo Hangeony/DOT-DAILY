@@ -9,11 +9,12 @@ import {
   validateEmail,
   validateName,
   validatePassword,
-} from "@/utils/vaildation";
+} from "@/utils/validation";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
+import { useAuthStore } from "../../store/useAuthStore";
 
 interface FormData {
   name: string;
@@ -39,6 +40,15 @@ function SignupPage() {
   const router = useRouter();
   const [errors, setErrors] = useState<FormErrors>({});
   const { showToast } = useToast();
+  const { clearGuestMode } = useAuthStore();
+
+  // 회원가입 페이지 로드 시 게스트 모드 해제
+  useEffect(() => {
+    console.log("🔓 회원가입 페이지 로드 - 게스트 모드 해제");
+    clearGuestMode();
+    // 로컬 스토리지에서도 게스트 모드 관련 데이터 정리
+    localStorage.removeItem("auth-storage");
+  }, [clearGuestMode]);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};

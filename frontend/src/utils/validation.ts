@@ -40,4 +40,4 @@ export const validateConfirmPassword = (password: string, confirmPassword: strin
   if (!confirmPassword.trim()) return ERROR_MESSAGES.REQUIRED.CONFIRM_PASSWORD;
   if (password !== confirmPassword) return ERROR_MESSAGES.FORMAT.PASSWORD_MISMATCH;
   return undefined;
-};
+}; 

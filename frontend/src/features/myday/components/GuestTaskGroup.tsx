@@ -8,35 +8,21 @@ import type {
 } from "@hello-pangea/dnd";
 import { clsx } from "clsx";
 import React from "react";
-import TaskItem from "./TaskItem";
-
+import GuestTaskItem from "./GuestTaskItem";
+import type { GuestTask } from "@/lib/api/guestTasks";
 import { TaskListSkeleton } from "./TaskListSkeleton";
 
 type Priority = "must" | "should" | "remind";
 
-// 공통 Task 인터페이스 (Task와 GuestTask를 모두 포함)
-interface CommonTask {
-  id: string | number;
-  title: string;
-  priority: "must" | "should" | "remind";
-  date: string;
-  createdAt: string;
-  updatedAt?: string;
-  // Task의 경우
-  status?: "pending" | "success" | "retry" | "archive";
-  retryCount?: number;
-  // GuestTask의 경우
-  completed?: boolean;
-}
-
-interface TaskGroupProps {
+interface GuestTaskGroupProps {
   priority: Priority;
   title: string;
-  tasks?: CommonTask[];
+  tasks?: GuestTask[];
   droppableId: string;
   onEmptyClick?: () => void;
   isLoading?: boolean;
-  onEdit?: (task: CommonTask) => void;
+  onEdit?: (task: GuestTask) => void;
+  onUpdate?: () => void; // 상태 업데이트를 위한 콜백
 }
 
 const priorityMap: Record<
@@ -60,7 +46,7 @@ const priorityMap: Record<
   },
 };
 
-const TaskGroup = ({
+const GuestTaskGroup = ({
   priority,
   title,
   tasks,
@@ -68,7 +54,8 @@ const TaskGroup = ({
   onEmptyClick,
   isLoading,
   onEdit,
-}: TaskGroupProps) => {
+  onUpdate,
+}: GuestTaskGroupProps) => {
   const { color, number, emptyMessage } = priorityMap[priority];
 
   return (
@@ -98,7 +85,7 @@ const TaskGroup = ({
                 tasks.map((task, idx) => (
                   <Draggable
                     key={task.id}
-                    draggableId={String(task.id)}
+                    draggableId={task.id}
                     index={idx}
                   >
                     {(
@@ -114,7 +101,11 @@ const TaskGroup = ({
                           opacity: snapshot.isDragging ? 0.7 : 1,
                         }}
                       >
-                        <TaskItem task={task} onEdit={onEdit} />
+                        <GuestTaskItem 
+                          task={task} 
+                          onEdit={onEdit} 
+                          onUpdate={onUpdate}
+                        />
                       </div>
                     )}
                   </Draggable>
@@ -144,4 +135,4 @@ const TaskGroup = ({
   );
 };
 
-export default React.memo(TaskGroup);
+export default React.memo(GuestTaskGroup); 

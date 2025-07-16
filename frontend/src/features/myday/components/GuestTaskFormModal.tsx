@@ -8,33 +8,16 @@ import { Button } from "@/components/ui/Button/Button";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import RadioButton from "@/components/ui/Radio/RadioButton";
-import { createTask, updateTask, Task } from "@/lib/api/tasks";
-import { useQueryClient } from "@tanstack/react-query";
+import { createGuestTask, updateGuestTask, GuestTask } from "@/lib/api/guestTasks";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/components/ui/Toast/ToastProvider";
 
-
-// 공통 Task 인터페이스 (Task와 GuestTask를 모두 포함)
-interface CommonTask {
-  id: string | number;
-  title: string;
-  priority: "must" | "should" | "remind";
-  date: string;
-  createdAt: string;
-  updatedAt?: string;
-  // Task의 경우
-  status?: "pending" | "success" | "retry" | "archive";
-  retryCount?: number;
-  // GuestTask의 경우
-  completed?: boolean;
-}
-
-interface TaskFormModalProps {
+interface GuestTaskFormModalProps {
   onClose: () => void;
   defaultDate?: string;
-  task?: CommonTask;
+  task?: GuestTask;
   defaultPriority?: "must" | "should" | "remind";
-  isGuest?: boolean;
+  onUpdate?: () => void; // 부모 컴포넌트에서 상태 업데이트를 위한 콜백
 }
 
 const inputSize: Size = "md";
@@ -48,20 +31,13 @@ const parseDate = (dateString: string): Date => {
   }
 };
 
-// 한국 시간대 기준으로 오늘 날짜를 가져오는 함수
-const getTodayInKorea = (): Date => {
-  const now = new Date();
-  const koreaTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
-  return koreaTime;
-};
-
-export default function TaskFormModal({
+export default function GuestTaskFormModal({
   onClose,
   defaultDate,
   task,
   defaultPriority = "must",
-  isGuest = false,
-}: TaskFormModalProps) {
+  onUpdate,
+}: GuestTaskFormModalProps) {
   const [label, setLabel] = useState(task ? task.title : "");
   const [priority, setPriority] = useState<"must" | "should" | "remind">(
     task ? task.priority : defaultPriority
@@ -71,47 +47,11 @@ export default function TaskFormModal({
       ? new Date(task.date)
       : defaultDate
       ? parseDate(defaultDate)
-      : getTodayInKorea()
+      : new Date()
   );
   const [isLoading, setIsLoading] = useState(false);
 
-  const queryClient = useQueryClient();
   const { showToast } = useToast();
-
-  // 게스트 모드용 로컬 스토리지 함수들
-  const saveGuestTask = (taskData: {
-    title: string;
-    priority: "must" | "should" | "remind";
-    date: string;
-  }) => {
-    const dateStr = taskData.date;
-    const stored = localStorage.getItem(`guest-tasks-${dateStr}`);
-    const existingTasks = stored ? JSON.parse(stored) : [];
-    
-    const newTask = {
-      id: task ? task.id : `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      title: taskData.title,
-      priority: taskData.priority,
-      completed: false,
-      date: taskData.date,
-      createdAt: task ? task.createdAt : new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    let updatedTasks;
-    if (task) {
-      // 수정 모드
-      updatedTasks = existingTasks.map((t: Record<string, unknown>) => 
-        t.id === task.id ? { ...t, ...newTask } : t
-      );
-    } else {
-      // 새로 생성
-      updatedTasks = [...existingTasks, newTask];
-    }
-
-    localStorage.setItem(`guest-tasks-${dateStr}`, JSON.stringify(updatedTasks));
-    return true;
-  };
 
   const handleSubmit = async () => {
     if (!label.trim() || !date) {
@@ -128,42 +68,35 @@ export default function TaskFormModal({
         date: format(date, "yyyy-MM-dd"),
       };
 
-      console.log("📝 할 일 저장 시도:", taskData);
+      console.log("📝 게스트 할 일 저장 시도:", taskData);
 
-      if (isGuest) {
-        // 게스트 모드: 로컬 스토리지에 저장
-        if (saveGuestTask(taskData)) {
-          showToast(task ? "할 일이 수정되었습니다! ✏️" : "새로운 할 일이 등록되었습니다! ✅");
-          window.location.reload(); // 페이지 새로고침으로 상태 업데이트
-        } else {
-          showToast("할 일 저장에 실패했습니다 😭");
-        }
-        onClose();
-        return;
-      }
-
-      // 인증된 사용자: 서버 API 사용
-      let newOrUpdatedTask: Task;
+      let newOrUpdatedTask: GuestTask | null;
       if (task) {
         // 수정 모드
         console.log("✏️ 수정 모드:", task.id);
-        newOrUpdatedTask = await updateTask(task.id as number, taskData);
-        showToast("할 일이 수정되었습니다! ✏️");
+        newOrUpdatedTask = updateGuestTask(task.id, taskData);
+        if (newOrUpdatedTask) {
+          showToast("할 일이 수정되었습니다! ✏️");
+        } else {
+          throw new Error("할 일 수정에 실패했습니다.");
+        }
       } else {
         // 등록 모드
         console.log("➕ 등록 모드");
-        newOrUpdatedTask = await createTask(taskData);
+        newOrUpdatedTask = createGuestTask(taskData);
         showToast("새로운 할 일이 등록되었습니다! ✅");
       }
 
-      console.log("✅ 할 일 저장 성공:", newOrUpdatedTask);
+      console.log("✅ 게스트 할 일 저장 성공:", newOrUpdatedTask);
 
-      // React Query 캐시 무효화 (모든 tasks 쿼리 새로고침)
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      // 부모 컴포넌트에서 상태 업데이트
+      if (onUpdate) {
+        onUpdate();
+      }
 
       onClose();
     } catch (error) {
-      console.error("❌ 할 일 저장 실패:", error);
+      console.error("❌ 게스트 할 일 저장 실패:", error);
       showToast("할 일 저장에 실패했습니다 😭");
     } finally {
       setIsLoading(false);
@@ -172,7 +105,7 @@ export default function TaskFormModal({
 
   return (
     <motion.div
-      key="task-form-modal"
+      key="guest-task-form-modal"
       initial={{ y: 80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: 80, opacity: 0 }}
@@ -205,7 +138,7 @@ export default function TaskFormModal({
             style={{ width: 20, height: 20 }}
           />
         </button>
-        <h2 className="text-sm text-gray-400">오늘 할 일</h2>
+        <h2 className="text-sm text-gray-400">오늘 할 일 (게스트)</h2>
         <div className="w-6" />
       </motion.div>
 
@@ -283,36 +216,21 @@ export default function TaskFormModal({
 
         <div className="flex flex-col gap-1">
           <label className="font-semibold">날짜를 선택해주세요</label>
-          <DatePicker value={date} onChange={setDate} size="md" />
+          <DatePicker
+            value={date}
+            onChange={setDate}
+          />
         </div>
-
-        {isGuest && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <p className="text-yellow-800 text-sm">
-              💡 게스트 모드에서는 데이터가 로컬에만 저장됩니다. 
-              로그인하면 모든 기기에서 데이터를 동기화할 수 있어요!
-            </p>
-          </div>
-        )}
       </div>
 
-      <div className="flex-none px-4 pb-6 pt-2 bg-white">
+      <div className="sticky bottom-0 px-6 py-4 bg-white border-t border-gray-200">
         <Button
-          size="lg"
-          variant="primary"
-          className="w-full rounded-full"
+          label={isLoading ? "저장 중..." : task ? "수정하기" : "등록하기"}
           onClick={handleSubmit}
-          disabled={isLoading || !label.trim()}
-        >
-          {isLoading
-            ? task
-              ? "수정 중..."
-              : "등록 중..."
-            : task
-            ? "수정하기"
-            : "할 일 등록하기"}
-        </Button>
+          disabled={isLoading}
+          className="w-full"
+        />
       </div>
     </motion.div>
   );
-}
+} 

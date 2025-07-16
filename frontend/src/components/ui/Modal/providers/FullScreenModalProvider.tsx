@@ -10,7 +10,6 @@ import React, {
 } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { TaskFormModal } from '@/features/myday/components';
-import { useRetrospectModal } from '@/hooks/useRestrospectModal';
 import RetrospectModal from '@/features/retrospect/components/RetrospectModal';
 import FullScreenModal from '@/components/ui/Modal/components/FullScreenModal';
 import BottomSheetModal from '@/components/ui/Modal/components/BottomSheetModal';
@@ -68,7 +67,11 @@ export const FullScreenModalProvider = ({ children }: { children: ReactNode }) =
   return (
     <FullScreenModalContext.Provider value={{ modalName, modalProps, openModal, closeModal }}>
       {children}
-      <FullScreenModalRenderer />
+      <FullScreenModalRenderer 
+        modalName={modalName} 
+        modalProps={modalProps} 
+        closeModal={closeModal} 
+      />
     </FullScreenModalContext.Provider>
   );
 };
@@ -81,10 +84,15 @@ export const useFullScreenModal = () => {
   return context;
 };
 
-const FullScreenModalRenderer = () => {
-  const { modalName, modalProps, closeModal } = useFullScreenModal();
-  const retrospectModal = useRetrospectModal();
-
+const FullScreenModalRenderer = ({ 
+  modalName, 
+  modalProps, 
+  closeModal 
+}: { 
+  modalName: ModalName; 
+  modalProps: ModalProps; 
+  closeModal: () => void; 
+}) => {
   return (
     <AnimatePresence>
       {modalName === 'taskForm' && (
@@ -95,10 +103,24 @@ const FullScreenModalRenderer = () => {
       {modalName === 'retrospectForm' && (
         <FullScreenModal open={true} onClose={closeModal} variant="card">
         <RetrospectModal
-          onClose={retrospectModal.closeModal}
-          onSubmit={retrospectModal.onSubmit}
-          onUpdate={retrospectModal.onUpdate}
-          onDelete={retrospectModal.onDelete}
+          onClose={closeModal}
+          onSubmit={async (emotion, retrospectText) => {
+            // 기본 회고 제출 로직
+            console.log('회고 제출:', { emotion, retrospectText });
+            closeModal();
+          }}
+          onUpdate={async (emotion, retrospectText) => {
+            // 기본 회고 수정 로직
+            console.log('회고 수정:', { emotion, retrospectText });
+            closeModal();
+          }}
+          onDelete={async () => {
+            // 기본 회고 삭제 로직
+            if (confirm('정말로 이 회고를 삭제하시겠습니까?')) {
+              console.log('회고 삭제');
+              closeModal();
+            }
+          }}
         />
         </FullScreenModal>
       )}
