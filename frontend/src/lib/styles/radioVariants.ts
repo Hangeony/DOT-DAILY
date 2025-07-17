@@ -1,5 +1,4 @@
 import { cva } from 'class-variance-authority';
-
 export const radioVariants = cva(
   'w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all',
   {

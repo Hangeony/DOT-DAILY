@@ -1,5 +1,4 @@
 'use client';
-
 import MobileLayout from '@/components/layout/MobileLayout';
 import Calendar from '@/features/retrospect/components/Calendar';
 import RetrospectContent from '@/features/retrospect/components/RetrospectContent';

@@ -6,7 +6,6 @@ interface User {
   email: string;
   name?: string;
 }
-
 interface AuthState {
   user: User | null;
   isGuest: boolean;

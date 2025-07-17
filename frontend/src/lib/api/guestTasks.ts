@@ -13,7 +13,6 @@ export interface GuestTask {
   description?: string;
   completed?: boolean;
 }
-
 // 로컬 스토리지 키
 const GUEST_TASKS_KEY = "guest_tasks";
 

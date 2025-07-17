@@ -1,5 +1,4 @@
 "use client";
-
 import MobileLayout from "@/components/layout/MobileLayout";
 import { StatCard } from "@/components/ui/StatCard";
 import { EmotionStatList, EmotionStat } from "@/components/ui/EmotionStatList";

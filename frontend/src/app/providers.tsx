@@ -8,7 +8,6 @@ import { ToastProvider } from '@/components/ui/Toast/ToastProvider';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
-
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>

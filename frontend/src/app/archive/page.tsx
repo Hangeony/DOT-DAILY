@@ -1,5 +1,4 @@
 "use client";
-
 import React, { useState } from "react";
 import { ArchiveList } from "@/features/archive/components";
 import MobileLayout from "@/components/layout/MobileLayout";

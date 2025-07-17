@@ -9,7 +9,6 @@ import Link from "next/link";
 export default function GuestModePage() {
   const { setGuestMode } = useAuthStore();
   const router = useRouter();
-
   const handleGuestMode = () => {
     console.log("🎮 게스트 모드 시작");
     setGuestMode();

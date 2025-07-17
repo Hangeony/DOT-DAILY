@@ -2,7 +2,6 @@ import { httpClient } from '@/lib/api/http';
 import { DailyEmotionMemo } from '../../features/retrospect/types/retrospect';
 import { formatDateToString } from '../../utils/retrospectUtils';
 import { EMOTION_TO_STICKER_ID } from '@/constants/emotion';
-
 const createMemoPayload = (memo: { emotion: string; memo: string; compareNote?: string }) => {
   const stickerId = EMOTION_TO_STICKER_ID[memo.emotion];
 

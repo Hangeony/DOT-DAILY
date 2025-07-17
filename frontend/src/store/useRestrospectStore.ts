@@ -10,7 +10,6 @@ interface RetrospectState {
   updateEmotionMemo: (item: DailyEmotionMemo) => void;
   deleteEmotionMemo: (date: Date) => void;
 }
-
 export const useRetrospectStore = create<RetrospectState>((set) => ({
   selectedYearMonth: {
     year: new Date().getFullYear(),

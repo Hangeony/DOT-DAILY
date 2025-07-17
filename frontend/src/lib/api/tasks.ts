@@ -14,7 +14,6 @@ export interface Task {
   createdAt: string; // ✅ 백엔드: createdAt
   updatedAt?: string; // ✅ 백엔드: updatedAt (nullable)
 }
-
 export interface CreateTaskRequest {
   title: string;
   priority: TaskPriority;

@@ -15,7 +15,6 @@ export const MyDayActive: Story = {
     activeTab: 'myday',
   },
 };
-
 export const RetrospectActive: Story = {
   args: {
     activeTab: 'retrospect',

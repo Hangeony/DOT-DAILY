@@ -11,7 +11,6 @@ type DateState = {
   selectedDate: Date;
   setSelectedDate: (date: Date) => void;
 };
-
 export const useDateStore = create<DateState>((set) => ({
   selectedDate: getTodayInKorea(),
   setSelectedDate: (date) => set({ selectedDate: date }),

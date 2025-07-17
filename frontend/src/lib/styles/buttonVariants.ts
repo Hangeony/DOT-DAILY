@@ -1,9 +1,5 @@
 import { cva } from 'class-variance-authority';
 
-// ✅ 디자인 시스템 기반 버튼 variants 정의
-// Tailwind + CVA 기반의 재사용 가능한 버튼 스타일 시스템
-// 피그마 디자인 기준에 맞춰 variant, size, rounded, fullWidth 옵션 제공
-
 export const buttonVariants = cva(
   // 공통 스타일: 정렬, 폰트, 상태 등
   'inline-flex items-center justify-center font-semibold transition whitespace-nowrap disabled:opacity-50 disabled:pointer-events-none',

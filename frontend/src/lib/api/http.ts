@@ -1,6 +1,8 @@
 import axios, { AxiosResponse, InternalAxiosRequestConfig } from "axios";
 
-const BASE_URL = "https://dot-daily.onrender.com/api/v1";
+const BASE_URL = process.env.NODE_ENV === "development" 
+  ? "http://localhost:3000/api/v1" 
+  : "https://dot-daily.onrender.com/api/v1";
 const DEFAULT_TIMEOUT = 30000; // 30초로 단축
 
 const isBrowser = () => typeof window !== "undefined";
