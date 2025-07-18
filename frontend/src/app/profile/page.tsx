@@ -27,8 +27,10 @@ export default function ProfilePage() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [total, setTotal] = useState(0);
   const [success, setSuccess] = useState(0);
+  const [retry, setRetry] = useState(0);
   const [pending, setPending] = useState(0);
   const [archive, setArchive] = useState(0);
+  const [totalRetryCount, setTotalRetryCount] = useState(0);
   const [userStats, setUserStats] = useState<StickerData[]>([]);
   const router = useRouter();
   const { isGuest, clearGuestMode } = useAuthStore();
@@ -37,7 +39,8 @@ export default function ProfilePage() {
   const stats = [
     { value: total, label: "전체" },
     { value: success, label: "성공", color: "text-green-600" },
-    { value: pending, label: "다시", color: "text-orange-500" },
+    { value: pending, label: "대기", color: "text-yellow-500" },
+    { value: retry, label: "다시", color: "text-red-500" },
     { value: archive, label: "보류", color: "text-blue-500" },
   ];
 
@@ -68,8 +71,8 @@ export default function ProfilePage() {
         localStorage.removeItem("auth-storage");
         localStorage.removeItem("accessToken");
         // 모든 게스트 관련 데이터 제거
-        Object.keys(localStorage).forEach(key => {
-          if (key.startsWith('guest-')) {
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith("guest-")) {
             localStorage.removeItem(key);
           }
         });
@@ -84,8 +87,8 @@ export default function ProfilePage() {
           localStorage.removeItem("auth-storage");
           localStorage.removeItem("accessToken");
           // 모든 게스트 관련 데이터 제거
-          Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('guest-')) {
+          Object.keys(localStorage).forEach((key) => {
+            if (key.startsWith("guest-")) {
               localStorage.removeItem(key);
             }
           });
@@ -116,14 +119,18 @@ export default function ProfilePage() {
 
         const pending = response.todos.pending || 0;
         const success = response.todos.success || 0;
+        const retry = response.todos.retry || 0;
         const archive = response.todos.archive || 0;
 
-        const total = pending + success + archive;
+        const total = pending + retry + success + archive;
 
         setTotal(total);
         setPending(pending);
         setSuccess(success);
+        setRetry(retry);
         setArchive(archive);
+
+        setTotalRetryCount(response.totalRetryCount || 0);
       } catch (error) {
         console.error("프로필 정보 로드 실패:", error);
       }
@@ -153,11 +160,15 @@ export default function ProfilePage() {
           </div>
 
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">로그인하면 사용할 수 있는 기능</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">
+              로그인하면 사용할 수 있는 기능
+            </h2>
             <div className="space-y-3">
               <div className="flex items-center">
                 <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                <span className="text-gray-700">모든 기기에서 데이터 동기화</span>
+                <span className="text-gray-700">
+                  모든 기기에서 데이터 동기화
+                </span>
               </div>
               <div className="flex items-center">
                 <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
@@ -221,11 +232,13 @@ export default function ProfilePage() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             할 일 통계
           </h2>
-          <div className="grid grid-cols-4 gap-3">
+
+          {/* ✅ 한 줄에 5개 꽉 채움 */}
+          <div className="grid grid-cols-5 gap-2">
             {stats.map((stat) => (
               <div
                 key={stat.label}
-                className="bg-gray-50 rounded-xl p-4 text-center"
+                className="bg-gray-50 rounded-xl p-2 text-center"
               >
                 <StatCard
                   value={stat.value}
@@ -234,6 +247,17 @@ export default function ProfilePage() {
                 />
               </div>
             ))}
+          </div>
+
+          {/* ✅ retryCount 총합 표시 */}
+          <div className="mt-3 text-center">
+            <p className="text-sm text-gray-500">
+              총 Retry 횟수:{" "}
+              <span className="font-bold text-orange-600">
+                {totalRetryCount}
+              </span>{" "}
+              회
+            </p>
           </div>
         </div>
 
