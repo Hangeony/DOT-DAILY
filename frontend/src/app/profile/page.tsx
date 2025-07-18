@@ -253,9 +253,7 @@ export default function ProfilePage() {
           <div className="mt-3 text-center">
             <p className="text-sm text-gray-500">
               총 Retry 횟수:{" "}
-              <span className="font-bold text-orange-600">
-                {totalRetryCount}
-              </span>{" "}
+              <span className="font-bold text-red-500">{totalRetryCount}</span>{" "}
               회
             </p>
           </div>
