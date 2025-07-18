@@ -17,6 +17,9 @@ export const getUserStatsService = async (userId: number) => {
     _count: true,
   });
 
+  console.log('✅ todoCounts 결과:');
+  console.table(todoCounts);
+
   // 모든 상태 초기화 후 누락된 상태는 0으로 채우기
   const allStatuses = ['pending', 'retry', 'success', 'archive'];
   const todos = allStatuses.reduce(
@@ -34,6 +37,8 @@ export const getUserStatsService = async (userId: number) => {
     _sum: { retryCount: true },
   });
   const totalRetryCount = retryCountAggregate._sum.retryCount || 0;
+
+  console.log(`totalRetryCount: ${totalRetryCount}`);
 
   // 감정 스티커 개수 가져오기
   const stickerCounts = await prisma.dailyReviews.groupBy({
