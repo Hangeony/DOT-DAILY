@@ -1,8 +1,7 @@
-import { email } from 'zod/v4';
 import { prisma } from '../prisma/client';
 
 export const getUserStatsService = async (userId: number) => {
-  // user 정보 가져오기
+  // 유저 정보 가져오기
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -11,14 +10,32 @@ export const getUserStatsService = async (userId: number) => {
     },
   });
 
-  //상태별 투두 갯수
+  // 상태별 투두 갯수 가져오기
   const todoCounts = await prisma.todos.groupBy({
     by: ['status'],
     where: { userId },
     _count: true,
   });
 
-  // 감정 스티커 개수
+  // 모든 상태 초기화 후 누락된 상태는 0으로 채우기
+  const allStatuses = ['pending', 'retry', 'success', 'archive'];
+  const todos = allStatuses.reduce(
+    (acc, status) => {
+      const found = todoCounts.find(item => item.status === status);
+      acc[status] = found ? found._count : 0;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
+
+  // retryCount 총합 구하기
+  const retryCountAggregate = await prisma.todos.aggregate({
+    where: { userId },
+    _sum: { retryCount: true },
+  });
+  const totalRetryCount = retryCountAggregate._sum.retryCount || 0;
+
+  // 감정 스티커 개수 가져오기
   const stickerCounts = await prisma.dailyReviews.groupBy({
     by: ['stickerId'],
     where: { userId },
@@ -27,13 +44,14 @@ export const getUserStatsService = async (userId: number) => {
 
   const stickers = await prisma.stickers.findMany();
 
-  const stickerStats = stickerCounts.map(sticker => {
-    const info = stickers.find(s => s.id === sticker.stickerId);
+  const stickerStats = stickers.map(sticker => {
+    const count =
+      stickerCounts.find(s => s.stickerId === sticker.id)?._count || 0;
     return {
-      stickerId: sticker.stickerId,
-      label: info?.label,
-      emoji: info?.emoji,
-      count: sticker._count,
+      stickerId: sticker.id,
+      label: sticker.label,
+      emoji: sticker.emoji,
+      count,
     };
   });
 
@@ -42,13 +60,8 @@ export const getUserStatsService = async (userId: number) => {
       username: user?.username,
       email: user?.email,
     },
-    todos: todoCounts.reduce(
-      (acc, item) => ({
-        ...acc,
-        [item.status]: item._count,
-      }),
-      {}
-    ),
+    todos, // 상태별 투두 개수
+    totalRetryCount, // retryCount 총합 추가
     stickers: stickerStats,
   };
 };
