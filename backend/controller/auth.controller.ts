@@ -23,7 +23,7 @@ export const loginController = async (req: Request, res: Response) => {
       message: '로그인에 성공했습니다.',
       data: result,
     });
-    return res.redirect('/');
+    return;
   } catch (error) {
     console.error('Login error:', error);
     if (error instanceof ZodError) {
@@ -73,19 +73,19 @@ export const logoutController = async (req: Request, res: Response) => {
 //  Google 로그인 (idToken 받아서 처리)
 export const googleLoginController = async (req: Request, res: Response) => {
   try {
-    const { idToken } = req.body;
+    const { accessToken } = req.body;
 
-    if (!idToken) {
+    if (!accessToken) {
       res.status(400).json({ message: 'idToken이 필요합니다.' });
       return;
     }
 
-    const { user, token } = await googleTokenService(idToken);
+    const { user, token } = await googleTokenService(accessToken);
 
     res.status(200).json({
       message: 'Google 로그인 성공',
       user,
-      accessToken: `Bearer ${token}`,
+      accessToken: token,
     });
     return;
   } catch (error) {
@@ -109,7 +109,7 @@ export const googleCallbackController = async (req: Request, res: Response) => {
 
     res.status(200).json({
       message: 'Google 콜백 처리 완료',
-      accessToken: `Bearer ${token}`,
+      accessToken: token,
     });
     return;
   } catch (error) {

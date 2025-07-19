@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@auth/express": "^0.10.1",
+    "@date-fns/tz": "^1.2.0",
     "@prisma/client": "^6.9.0",
     "axios": "^1.10.0",
     "bcrypt": "^6.0.0",

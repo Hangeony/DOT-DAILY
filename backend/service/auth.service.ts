@@ -75,8 +75,8 @@ export const loginService = async (payload: LoginPayload) => {
     id: user.id,
     username: user.username,
     email: user.email,
-    accessToken: `Bearer ${accessToken}`,
-    token: `Bearer ${refreshToken}`,
+    accessToken: accessToken,
+    refreshToken: refreshToken,
   };
 };
 

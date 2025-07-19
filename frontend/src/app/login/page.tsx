@@ -50,41 +50,37 @@ function LoginPageContent() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const onLogin = async (e: FormEvent<HTMLFormElement>) => {
+const onLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!validateForm()) return;
 
-    setIsLoading(true);
-    console.log("🔐 로그인 시도:", { email });
+    if (!validateForm()) {
+      return;
+    }
 
     try {
-      showToast("서버에 연결 중입니다... 잠시만 기다려주세요.");
       const response = await httpClient.post("/auth/login", {
         email,
         password,
       });
 
+      console.log("로그인 성공:", response.data);
+
+      // 백엔드 응답 구조에 따라 토큰 경로 확인
       const accessToken =
-        response.data.accessToken || response.data.data?.accessToken;
-      const userData = response.data.user || response.data.data?.user;
-
-      if (accessToken && userData) {
+        response.data.data?.accessToken || response.data.accessToken;
+      if (accessToken) {
         localStorage.setItem("accessToken", accessToken);
-        login(userData, accessToken);
-
-        console.log("✅ 로그인 성공, 홈으로 이동");
-        showToast("로그인되었습니다! 🎉");
         router.push("/");
       } else {
-        showToast("로그인 처리 중 오류가 발생했습니다.");
+        console.error("토큰을 찾을 수 없습니다:", response.data);
+        alert("로그인 처리 중 오류가 발생했습니다.");
       }
     } catch (error) {
-      console.error("❌ 로그인 실패:", error);
-      showToast("로그인 실패. 이메일과 비밀번호를 확인하세요.");
-    } finally {
-      setIsLoading(false);
+      console.error("로그인 실패:", error);
+      alert("로그인 실패했습니다.");
     }
   };
+
 
   // 구글 로그인 로직
   const googleLogin = useGoogleLogin({
@@ -132,6 +128,7 @@ function LoginPageContent() {
             height={60}
             priority
           />
+          {/* <h1 className="text-2xl font-bold text-gray-900 tracking-tight">dot<span className="text-blue-400">.</span>daily</h1> */}
         </div>
         <form onSubmit={onLogin} className="flex flex-col gap-6">
           <Input
@@ -177,6 +174,18 @@ function LoginPageContent() {
           />
         </form>
         <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            className="flex items-center justify-center gap-2 bg-yellow-300 hover:bg-yellow-400 rounded-full py-3 font-bold text-gray-800 shadow transition"
+          >
+            <Image
+              src="/kakao.svg"
+              alt="카카오 로그인"
+              width={24}
+              height={24}
+            />
+            카카오로 로그인
+          </button>
           <button
             type="button"
             onClick={() => googleLogin()}
