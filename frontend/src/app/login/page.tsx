@@ -1,4 +1,5 @@
 "use client";
+
 import { Button } from "@/components/ui/Button/Button";
 import { Input } from "@/components/ui/Input/Input";
 import { httpClient } from "@/lib/api/http";
@@ -10,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useState, useEffect } from "react";
 import { useToast } from "@/components/ui/Toast/ToastProvider";
 import { useAuthStore } from "../../store/useAuthStore";
-import { useGoogleLogin } from "@react-oauth/google";
+import { GoogleOAuthProvider, useGoogleLogin } from "@react-oauth/google";
 import axios from "axios";
 
 interface FormErrors {
@@ -18,7 +19,7 @@ interface FormErrors {
   password?: string;
 }
 
-function LoginPage() {
+function LoginPageContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<FormErrors>({});
@@ -32,8 +33,7 @@ function LoginPage() {
   useEffect(() => {
     console.log("🔓 로그인 페이지 로드 - 게스트 모드 해제");
     clearGuestMode();
-    // 로컬 스토리지에서도 게스트 모드 관련 데이터 정리
-    localStorage.removeItem("auth-storage");
+    localStorage.removeItem("auth-storage"); // 게스트 데이터 초기화
   }, [clearGuestMode]);
 
   const toggleShowPassword = () => {
@@ -58,155 +58,68 @@ function LoginPage() {
     console.log("🔐 로그인 시도:", { email });
 
     try {
-      console.log("📡 API 요청 전송...");
       showToast("서버에 연결 중입니다... 잠시만 기다려주세요.");
-
       const response = await httpClient.post("/auth/login", {
         email,
         password,
       });
 
-      console.log("✅ API 응답:", response.data);
-
       const accessToken =
-        response.data.data?.accessToken || response.data.accessToken;
-      let userData = response.data.data?.user || response.data.user;
-
-      console.log("🔑 토큰 확인:", {
-        accessToken: !!accessToken,
-        userData: !!userData,
-      });
-
-      // JWT 토큰에서 사용자 정보 추출 (userData가 없는 경우)
-      if (accessToken && !userData) {
-        try {
-          const cleanToken = accessToken.startsWith("Bearer ")
-            ? accessToken.substring(7)
-            : accessToken;
-
-          // JWT 토큰의 payload 부분을 디코드
-          const payload = cleanToken.split(".")[1];
-          const decodedPayload = JSON.parse(atob(payload));
-
-          console.log("🔍 JWT 페이로드:", decodedPayload);
-
-          userData = {
-            id:
-              decodedPayload.id?.toString() ||
-              decodedPayload.userId?.toString(),
-            email: decodedPayload.email,
-            name: decodedPayload.username || decodedPayload.name,
-          };
-
-          console.log("👤 추출된 사용자 데이터:", userData);
-        } catch (jwtError) {
-          console.error("❌ JWT 디코딩 실패:", jwtError);
-        }
-      }
+        response.data.accessToken || response.data.data?.accessToken;
+      const userData = response.data.user || response.data.data?.user;
 
       if (accessToken && userData) {
-        const cleanToken = accessToken.startsWith("Bearer ")
-          ? accessToken.substring(7)
-          : accessToken;
-
-        console.log("💾 토큰 저장 및 로그인 처리...");
-        localStorage.setItem("accessToken", cleanToken);
-        login(userData, cleanToken);
+        localStorage.setItem("accessToken", accessToken);
+        login(userData, accessToken);
 
         console.log("✅ 로그인 성공, 홈으로 이동");
         showToast("로그인되었습니다! 🎉");
         router.push("/");
       } else {
-        console.error("❌ 토큰 또는 사용자 데이터 없음:", {
-          accessToken,
-          userData,
-        });
         showToast("로그인 처리 중 오류가 발생했습니다.");
       }
-    } catch (error: unknown) {
+    } catch (error) {
       console.error("❌ 로그인 실패:", error);
-
-      if (
-        typeof error === "object" &&
-        error !== null &&
-        "response" in error &&
-        typeof (error as { response?: unknown }).response === "object"
-      ) {
-        const err = error as {
-          response?: {
-            data?: {
-              errors?: { email?: string };
-              message?: string;
-            };
-            status?: number;
-          };
-        };
-
-        console.log("📊 오류 상세 정보:", {
-          status: err.response?.status,
-          data: err.response?.data,
-        });
-
-        if (err.response?.data?.errors?.email) {
-          showToast(err.response.data.errors.email);
-          return;
-        }
-
-        if (err.response?.data?.message) {
-          showToast(err.response.data.message);
-          return;
-        }
-
-        if (err.response?.status === 401) {
-          showToast("이메일 또는 비밀번호가 올바르지 않습니다.");
-          return;
-        }
-
-        if (err.response?.status === 500) {
-          showToast("서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
-          return;
-        }
-      }
-
-      showToast("로그인 실패했습니다. 네트워크 연결을 확인해주세요.");
+      showToast("로그인 실패. 이메일과 비밀번호를 확인하세요.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ✅ 구글 로그인 로직
+  // 구글 로그인 로직
   const googleLogin = useGoogleLogin({
-  onSuccess: async (tokenResponse) => {
-    try {
-      console.log("✅ 구글 응답:", tokenResponse);
+    onSuccess: async (tokenResponse) => {
+      try {
+        console.log("✅ 구글 응답:", tokenResponse);
 
-      const accessToken = tokenResponse.access_token;
+        // access_token만 추출
+        const accessToken = tokenResponse.access_token;
 
-      // ✅ 백엔드로 accessToken 전달
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/google/login`,
-        { accessToken }
-      );
+        // 백엔드로 전달
+        const response = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/google/login`,
+          { accessToken } // credential 아님
+        );
 
-      console.log("✅ 백엔드 응답:", response.data);
+        console.log("✅ 백엔드 응답:", response.data);
 
-      const jwt = response.data.accessToken;
-      const user = response.data.user;
+        const jwt = response.data.accessToken;
+        const user = response.data.user;
 
-      localStorage.setItem("accessToken", jwt);
-      login(user, jwt);
-      showToast("Google 로그인 성공 🎉");
-      router.push("/");
-    } catch (error) {
-      console.error("❌ Google 로그인 실패", error);
+        localStorage.setItem("accessToken", jwt);
+        login(user, jwt);
+        showToast("Google 로그인 성공 🎉");
+        router.push("/");
+      } catch (error) {
+        console.error("❌ Google 로그인 실패", error);
+        showToast("Google 로그인 실패");
+      }
+    },
+    onError: () => {
+      console.error("❌ Google SDK 로그인 실패");
       showToast("Google 로그인 실패");
-    }
-  },
-  onError: () => {
-    console.error("❌ Google SDK 로그인 실패");
-    showToast("Google 로그인 실패");
-  },
-});
+    },
+  });
 
   return (
     <main className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-b from-blue-50 to-white px-2">
@@ -219,7 +132,6 @@ function LoginPage() {
             height={60}
             priority
           />
-          {/* <h1 className="text-2xl font-bold text-gray-900 tracking-tight">dot<span className="text-blue-400">.</span>daily</h1> */}
         </div>
         <form onSubmit={onLogin} className="flex flex-col gap-6">
           <Input
@@ -267,19 +179,6 @@ function LoginPage() {
         <div className="flex flex-col gap-3">
           <button
             type="button"
-            className="flex items-center justify-center gap-2 bg-yellow-300 hover:bg-yellow-400 rounded-full py-3 font-bold text-gray-800 shadow transition"
-          >
-            <Image
-              src="/kakao.svg"
-              alt="카카오 로그인"
-              width={24}
-              height={24}
-            />
-            카카오로 로그인
-          </button>
-          {/* 구글 로그인 */}
-          <button
-            type="button"
             onClick={() => googleLogin()}
             className="flex items-center justify-center gap-2 bg-white border hover:bg-gray-100 rounded-full py-3 font-bold text-gray-700 shadow transition"
           >
@@ -303,4 +202,11 @@ function LoginPage() {
   );
 }
 
-export default LoginPage;
+// ✅ GoogleOAuthProvider로 감싸기
+export default function LoginPage() {
+  return (
+    <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
+      <LoginPageContent />
+    </GoogleOAuthProvider>
+  );
+}
