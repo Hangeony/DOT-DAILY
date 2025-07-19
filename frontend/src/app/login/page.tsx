@@ -50,7 +50,7 @@ function LoginPageContent() {
     return Object.keys(newErrors).length === 0;
   };
 
-const onLogin = async (e: FormEvent<HTMLFormElement>) => {
+  const onLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -58,6 +58,7 @@ const onLogin = async (e: FormEvent<HTMLFormElement>) => {
     }
 
     try {
+      setIsLoading(true);
       const response = await httpClient.post("/auth/login", {
         email,
         password,
@@ -78,9 +79,10 @@ const onLogin = async (e: FormEvent<HTMLFormElement>) => {
     } catch (error) {
       console.error("로그인 실패:", error);
       alert("로그인 실패했습니다.");
+    } finally {
+      setIsLoading(false);
     }
   };
-
 
   // 구글 로그인 로직
   const googleLogin = useGoogleLogin({
