@@ -77,24 +77,27 @@ export const googleLoginController = async (req: Request, res: Response) => {
     const token = accessToken || access_token; // 둘 다 지원
 
     if (!token) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
+      res.status(StatusCodes.BAD_REQUEST).json({
         message: 'accessToken이 필요합니다.',
       });
+      return;
     }
 
     const { user, token: issuedToken } = await googleTokenService(token);
 
-    return res.status(StatusCodes.OK).json({
+    res.status(StatusCodes.OK).json({
       message: 'Google 로그인 성공',
       user,
       accessToken: issuedToken,
     });
+    return;
   } catch (error) {
     console.error('[Google Login Error]', error);
 
-    return res.status(StatusCodes.UNAUTHORIZED).json({
+    res.status(StatusCodes.UNAUTHORIZED).json({
       message: 'Google 로그인 실패',
     });
+    return;
   }
 };
 
@@ -104,22 +107,25 @@ export const googleCallbackController = async (req: Request, res: Response) => {
     const { user } = req.body;
 
     if (!user) {
-      return res.status(StatusCodes.BAD_REQUEST).json({
+      res.status(StatusCodes.BAD_REQUEST).json({
         message: '사용자 정보가 필요합니다.',
       });
+      return;
     }
 
     const token = await googleCallbackService(user);
 
-    return res.status(StatusCodes.OK).json({
+    res.status(StatusCodes.OK).json({
       message: 'Google 콜백 처리 완료',
       accessToken: token,
     });
+    return;
   } catch (error) {
     console.error('[Google Callback Error]', error);
 
-    return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+    res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
       message: 'Google 콜백 처리 실패',
     });
+    return;
   }
 };
