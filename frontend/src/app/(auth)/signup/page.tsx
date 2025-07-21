@@ -1,6 +1,7 @@
 "use client";
-import { Button } from "@/components/ui/Button/Button";
-import { Input } from "@/components/ui/Input/Input";
+
+import React from "react";
+import { Button, Input } from "@/components/ui";
 import { useToast } from "@/components/ui/Toast/ToastProvider";
 import { httpClient } from "@/lib/api/http";
 import {
@@ -13,7 +14,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState, useEffect } from "react";
-import { useAuthStore } from "../../store/useAuthStore";
+import { useAuthStore } from "@/store/useAuthStore";
 
 interface FormData {
   name: string;

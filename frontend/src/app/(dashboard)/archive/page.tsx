@@ -9,6 +9,7 @@ import {
   updateArchiveTask,
 } from "@/lib/api/tasks";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { TaskListSkeleton } from "@/components/ui/Skeleton";
 
 import { useDateStore } from "@/store/useDateStore";
 import BottomSheetModal from "@/components/ui/Modal/components/BottomSheetModal";
@@ -105,7 +106,7 @@ export default function ArchivePage() {
   };
 
   const handleLogin = () => {
-    router.push('/login');
+    router.push("/login");
   };
 
   // 게스트 모드일 때 로그인 필요 메시지 표시
@@ -130,29 +131,41 @@ export default function ArchivePage() {
           </div>
 
           <div className="bg-gradient-to-r from-orange-50 to-red-50 rounded-2xl p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">보류함이란?</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">
+              보류함이란?
+            </h2>
             <div className="space-y-3">
               <div className="flex items-start gap-3">
                 <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-gray-700 text-sm">오늘 하기 어려운 할 일을 임시로 보관</span>
+                <span className="text-gray-700 text-sm">
+                  오늘 하기 어려운 할 일을 임시로 보관
+                </span>
               </div>
               <div className="flex items-start gap-3">
                 <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-gray-700 text-sm">나중에 다시 오늘 할 일로 가져올 수 있음</span>
+                <span className="text-gray-700 text-sm">
+                  나중에 다시 오늘 할 일로 가져올 수 있음
+                </span>
               </div>
               <div className="flex items-start gap-3">
                 <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-gray-700 text-sm">할 일 목록을 깔끔하게 관리</span>
+                <span className="text-gray-700 text-sm">
+                  할 일 목록을 깔끔하게 관리
+                </span>
               </div>
               <div className="flex items-start gap-3">
                 <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-gray-700 text-sm">우선순위에 따라 할 일을 정리</span>
+                <span className="text-gray-700 text-sm">
+                  우선순위에 따라 할 일을 정리
+                </span>
               </div>
             </div>
           </div>
 
           <div className="bg-blue-50 rounded-lg p-4 space-y-3">
-            <h3 className="font-kkonghae text-lg text-blue-800">💡 보류함 사용 팁</h3>
+            <h3 className="font-kkonghae text-lg text-blue-800">
+              💡 보류함 사용 팁
+            </h3>
             <ul className="space-y-2 text-sm text-blue-700">
               <li className="flex items-start gap-2">
                 <span>•</span>
@@ -168,7 +181,9 @@ export default function ArchivePage() {
               </li>
               <li className="flex items-start gap-2">
                 <span>•</span>
-                <span>정말 필요 없는 할 일은 삭제해서 목록을 깔끔하게 유지하세요</span>
+                <span>
+                  정말 필요 없는 할 일은 삭제해서 목록을 깔끔하게 유지하세요
+                </span>
               </li>
             </ul>
           </div>
@@ -187,32 +202,48 @@ export default function ArchivePage() {
   }
 
   // archiveTasks 데이터를 UI용 형태로 변환
-  const today = new Date();
-  const archiveTaskList: ArchiveTask[] = archiveTasks.map((task) => ({
-    id: String(task.id),
-    title: task.title,
-    priority: task.priority === "must" ? 1 : task.priority === "should" ? 2 : 3,
-    retryCount: task.retryCount || 0, // 📝 백엔드에서 retryCount가 없으면 0으로 처리
-    dueDate: task.date.slice(2).replace(/-/g, "."),
-    archivedDate: today.toISOString().slice(2, 10).replace(/-/g, "."), // 현재 날짜를 보류된 시기로 설정
-  }));
+  const archiveTaskList: ArchiveTask[] = archiveTasks.map((task) => {
+    // 보류된 날짜 결정: updatedAt이 있으면 사용, 없으면 createdAt 사용
+    const dateToFormat = task.updatedAt
+      ? new Date(task.updatedAt)
+      : new Date(task.createdAt);
+
+    // YY.MM.DD HH:MM 형식으로 포맷
+    const year = dateToFormat.getFullYear().toString().slice(-2);
+    const month = (dateToFormat.getMonth() + 1).toString().padStart(2, "0");
+    const day = dateToFormat.getDate().toString().padStart(2, "0");
+    const hours = dateToFormat.getHours().toString().padStart(2, "0");
+    const minutes = dateToFormat.getMinutes().toString().padStart(2, "0");
+
+    const archivedDate = `${year}.${month}.${day} ${hours}:${minutes}`;
+
+    return {
+      id: String(task.id),
+      title: task.title,
+      priority:
+        task.priority === "must" ? 1 : task.priority === "should" ? 2 : 3,
+      retryCount: task.retryCount || 0, // 📝 백엔드에서 retryCount가 없으면 0으로 처리
+      dueDate: task.date.slice(2).replace(/-/g, "."),
+      archivedDate: archivedDate,
+    };
+  });
 
   return (
     <MobileLayout headerTitle="보류함">
-      <div className="px-4 py-6 space-y-2">
-        {isLoading ? (
-          <div className="flex justify-center items-center py-8">
-            <div className="text-zinc-500">로딩 중...</div>
-          </div>
-        ) : (
+      {isLoading ? (
+        <div className="px-4 py-6">
+          <TaskListSkeleton count={4} />
+        </div>
+      ) : (
+        <div className="px-4 py-6 space-y-2">
           <ArchiveList
             tasks={archiveTaskList}
             onEdit={handleEdit}
             onDelete={handleDelete}
             onMoveToToday={handleMoveToToday}
           />
-        )}
-      </div>
+        </div>
+      )}
       <BottomSheetModal
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}

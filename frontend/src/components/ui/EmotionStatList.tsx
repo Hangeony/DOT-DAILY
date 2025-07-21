@@ -1,5 +1,5 @@
-import React from 'react';
-import Image from 'next/image';
+import React from "react";
+import Image from "next/image";
 
 export interface EmotionStat {
   icon: string; // 이미지 경로
@@ -17,16 +17,16 @@ export const EmotionStatList: React.FC<EmotionStatListProps> = ({ stats }) => (
     {stats.map((stat) => (
       <div
         key={stat.label}
-        className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+        className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
       >
         <div className="flex items-center">
           <div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center mr-3">
-            <Image 
-              src={stat.icon} 
-              alt={stat.label} 
-              width={24} 
-              height={24} 
-              className={stat.color ?? ''} 
+            <Image
+              src={stat.icon}
+              alt={stat.label}
+              width={24}
+              height={24}
+              className={stat.color ?? ""}
             />
           </div>
           <span className="text-gray-700 font-medium">{stat.label}</span>
@@ -38,4 +38,4 @@ export const EmotionStatList: React.FC<EmotionStatListProps> = ({ stats }) => (
       </div>
     ))}
   </div>
-); 
+);

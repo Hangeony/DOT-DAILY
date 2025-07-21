@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import type { ButtonHTMLAttributes } from 'react';
-import { clsx } from 'clsx';
-import { buttonVariants } from '@/lib/styles/buttonVariants';
-import type { VariantProps } from 'class-variance-authority';
+import type { ButtonHTMLAttributes } from "react";
+import { clsx } from "clsx";
+import { buttonVariants } from "@/lib/styles";
+import type { VariantProps } from "class-variance-authority";
 
-type ButtonVariant = VariantProps<typeof buttonVariants>['variant'];
-type ButtonSize = VariantProps<typeof buttonVariants>['size'];
-type ButtonRounded = VariantProps<typeof buttonVariants>['rounded'];
-type ButtonFullWidth = VariantProps<typeof buttonVariants>['fullWidth'];
+type ButtonVariant = VariantProps<typeof buttonVariants>["variant"];
+type ButtonSize = VariantProps<typeof buttonVariants>["size"];
+type ButtonRounded = VariantProps<typeof buttonVariants>["rounded"];
+type ButtonFullWidth = VariantProps<typeof buttonVariants>["fullWidth"];
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   label?: string;
@@ -22,8 +22,8 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const Button = ({
   label,
-  variant = 'primary',
-  size = 'md',
+  variant = "primary",
+  size = "md",
   rounded,
   fullWidth,
   className,

@@ -8,8 +8,8 @@ import {
   TaskListSkeleton,
   TaskFormModal,
 } from "@/features/myday/components";
-import { Plus } from "lucide-react";
-import Fab from "@/components/ui/Fab/Fab";
+// import { Plus } from "lucide-react";
+// import Fab from "@/components/ui/Fab/Fab";
 import { useDateStore } from "@/store/useDateStore";
 import { getTasksByDate, Task, updateTask } from "@/lib/api/tasks";
 import FullScreenModal from "@/components/ui/Modal/components/FullScreenModal";
@@ -53,7 +53,8 @@ interface CommonTask {
 
 export default function MyDayPage() {
   const { selectedDate } = useDateStore();
-  const { isGuest } = useAuthStore();
+  const { isGuest, isAuthenticated } = useAuthStore();
+
   const [editTask, setEditTask] = useState<CommonTask | null>(null);
   const [open, setOpen] = useState(false);
   const [defaultPriority, setDefaultPriority] = useState<
@@ -71,6 +72,8 @@ export default function MyDayPage() {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+      if (typeof window === "undefined") return;
+
       const dateStr = date.toISOString().split("T")[0];
       const stored = localStorage.getItem(`guest-tasks-${dateStr}`);
       if (stored) {
@@ -85,17 +88,29 @@ export default function MyDayPage() {
       setIsLoading(false);
     }, [date]);
 
-    const updateGuestTasks = useCallback((newTasks: GuestTask[]) => {
-      const dateStr = date.toISOString().split("T")[0];
-      setGuestTasks(newTasks);
-      localStorage.setItem(`guest-tasks-${dateStr}`, JSON.stringify(newTasks));
-    }, [date]);
+    const updateGuestTasks = useCallback(
+      (newTasks: GuestTask[]) => {
+        if (typeof window === "undefined") return;
+
+        const dateStr = date.toISOString().split("T")[0];
+        setGuestTasks(newTasks);
+        localStorage.setItem(
+          `guest-tasks-${dateStr}`,
+          JSON.stringify(newTasks)
+        );
+      },
+      [date]
+    );
 
     return { guestTasks, setGuestTasks: updateGuestTasks, isLoading };
   };
 
   // 게스트 모드일 때 로컬 스토리지 사용
-  const { guestTasks, setGuestTasks, isLoading: guestLoading } = useGuestTasks(selectedDate);
+  const {
+    guestTasks,
+    setGuestTasks,
+    isLoading: guestLoading,
+  } = useGuestTasks(selectedDate);
 
   // 인증된 사용자일 때 서버 API 사용
   const {
@@ -110,42 +125,65 @@ export default function MyDayPage() {
     staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    enabled: !isGuest && !!localStorage.getItem("accessToken"), // 게스트 모드가 아니고 토큰이 있을 때만 실행
+    enabled:
+      isAuthenticated && // 인증된 사용자만
+      !isGuest && // 게스트 모드가 아니고
+      typeof window !== "undefined" &&
+      !!localStorage.getItem("accessToken"), // 토큰이 있을 때만 실행
   });
 
   // Task를 CommonTask로 변환하는 함수
-  const convertTaskToCommon = useCallback((task: Task): CommonTask => ({
-    id: task.id,
-    title: task.title,
-    priority: task.priority,
-    date: task.date,
-    createdAt: task.createdAt,
-    updatedAt: task.updatedAt,
-    status: task.status,
-    retryCount: task.retryCount,
-  }), []);
+  const convertTaskToCommon = useCallback(
+    (task: Task): CommonTask => ({
+      id: task.id,
+      title: task.title,
+      priority: task.priority,
+      date: task.date,
+      createdAt: task.createdAt,
+      updatedAt: task.updatedAt,
+      status: task.status,
+      retryCount: task.retryCount,
+    }),
+    []
+  );
 
   // GuestTask를 CommonTask로 변환하는 함수
-  const convertGuestTaskToCommon = useCallback((task: GuestTask): CommonTask => ({
-    id: task.id,
-    title: task.title,
-    priority: task.priority,
-    date: task.date,
-    createdAt: task.createdAt,
-    updatedAt: task.updatedAt,
-    completed: task.completed,
-  }), []);
+  const convertGuestTaskToCommon = useCallback(
+    (task: GuestTask): CommonTask => ({
+      id: task.id,
+      title: task.title,
+      priority: task.priority,
+      date: task.date,
+      createdAt: task.createdAt,
+      updatedAt: task.updatedAt,
+      completed: task.completed,
+    }),
+    []
+  );
 
   // 현재 사용할 데이터 결정
   const currentTasks: CommonTask[] = useMemo(() => {
     if (isGuest) {
       return guestTasks.map(convertGuestTaskToCommon);
-    } else {
+    } else if (isAuthenticated) {
       return (tasks || []).map(convertTaskToCommon);
+    } else {
+      return [];
     }
-  }, [isGuest, guestTasks, tasks, convertGuestTaskToCommon, convertTaskToCommon]);
+  }, [
+    isGuest,
+    isAuthenticated,
+    guestTasks,
+    tasks,
+    convertGuestTaskToCommon,
+    convertTaskToCommon,
+  ]);
 
-  const isLoading = isGuest ? guestLoading : serverLoading;
+  const isLoading = isGuest
+    ? guestLoading
+    : isAuthenticated
+    ? serverLoading
+    : false;
 
   // DnD를 위한 그룹별 상태 관리
   const [mustTasks, setMustTasks] = useState<CommonTask[]>([]);
@@ -243,11 +281,11 @@ export default function MyDayPage() {
       destArr.splice(destination.index, 0, updated);
       setSourceTasks(sourceArr);
       setDestTasks(destArr);
-      
+
       // 게스트 모드일 때는 로컬 스토리지 업데이트
       if (isGuest) {
         const allTasks = [...sourceArr, ...destArr];
-        const guestTasksToSave = allTasks.map(task => ({
+        const guestTasksToSave = allTasks.map((task) => ({
           id: task.id as string,
           title: task.title,
           priority: task.priority,
@@ -259,7 +297,7 @@ export default function MyDayPage() {
         setGuestTasks(guestTasksToSave);
       } else {
         // 서버에 priority 변경 동기화
-        if (typeof updated.id === 'number') {
+        if (typeof updated.id === "number") {
           await updateTask(updated.id, { priority: newPriority });
         }
       }
@@ -320,7 +358,11 @@ export default function MyDayPage() {
   }
 
   return (
-    <MobileLayout headerTitle="나의 하루">
+    <MobileLayout
+      headerTitle="나의 하루"
+      showFab={true}
+      onFabClick={handleFabClick}
+    >
       <div className="sticky top-0 z-10 bg-surface-base">
         <DateHeader />
       </div>
@@ -356,20 +398,10 @@ export default function MyDayPage() {
         </div>
       </DragDropContext>
 
-      <div className="fixed bottom-[5.5rem] z-20 w-full max-w-md left-1/2 -translate-x-1/2 flex justify-end pr-4 pointer-events-none">
-        <Fab
-          aria-label="새로운 할 일 추가"
-          className="pointer-events-auto"
-          onClick={handleFabClick}
-        >
-          <Plus className="w-6 h-6" />
-        </Fab>
-      </div>
-
       <FullScreenModal open={open} onClose={handleClose}>
         <TaskFormModal
           onClose={handleClose}
-          defaultDate={selectedDate.toLocaleDateString('en-CA')} // YYYY-MM-DD 형식으로 한국 시간대 사용
+          defaultDate={selectedDate.toLocaleDateString("en-CA")} // YYYY-MM-DD 형식으로 한국 시간대 사용
           task={editTask || undefined}
           defaultPriority={defaultPriority}
           isGuest={isGuest}
@@ -380,4 +412,4 @@ export default function MyDayPage() {
       <CelebrationEffect show={showCelebration} onComplete={hideCelebration} />
     </MobileLayout>
   );
-} 
+}

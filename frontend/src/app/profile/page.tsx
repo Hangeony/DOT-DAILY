@@ -1,47 +1,97 @@
 "use client";
 import MobileLayout from "@/components/layout/MobileLayout";
-import { StatCard } from "@/components/ui/StatCard";
 import { EmotionStatList, EmotionStat } from "@/components/ui/EmotionStatList";
 import { Button } from "@/components/ui/Button/Button";
-import { LogOut, User, Mail, Lock } from "lucide-react";
+import {
+  LogOut,
+  Lock,
+  TrendingUp,
+  CheckCircle,
+  Clock,
+  RefreshCw,
+  Archive,
+} from "lucide-react";
 import { logout } from "@/lib/api/auth";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { getUserProfileStats } from "@/lib/api/profile";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useConfirm } from "@/components/ui/Modal/providers/ModalProvider";
+import { useQuery } from "@tanstack/react-query";
+import { PageSkeleton } from "@/components/ui/Skeleton";
+import { useState } from "react";
 
-interface UserProfile {
-  email: string;
-  username: string;
-}
-
-interface StickerData {
-  stickerId: number;
+interface StatItem {
+  value: number;
   label: string;
-  emoji: string;
-  count: number;
+  color?: string;
+  icon?: React.ReactNode;
+  bgColor?: string;
 }
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [total, setTotal] = useState(0);
-  const [success, setSuccess] = useState(0);
-  const [retry, setRetry] = useState(0);
-  const [pending, setPending] = useState(0);
-  const [archive, setArchive] = useState(0);
-  const [totalRetryCount, setTotalRetryCount] = useState(0);
-  const [userStats, setUserStats] = useState<StickerData[]>([]);
   const router = useRouter();
   const { isGuest, clearGuestMode } = useAuthStore();
   const confirm = useConfirm();
+  const [period, setPeriod] = useState<"all" | "month" | "week">("all");
 
-  const stats = [
-    { value: total, label: "전체" },
-    { value: success, label: "성공", color: "text-green-600" },
-    { value: pending, label: "대기", color: "text-yellow-500" },
-    { value: retry, label: "다시", color: "text-red-500" },
-    { value: archive, label: "보류", color: "text-blue-500" },
+  // React Query로 성능 최적화
+  const { data: profileData, isLoading } = useQuery({
+    queryKey: ["userProfileStats", period],
+    queryFn: () => getUserProfileStats(period),
+    enabled: !isGuest, // 게스트 모드가 아닐 때만 실행
+    staleTime: 0, // 기간 변경 시 즉시 새로운 데이터 요청
+    refetchOnWindowFocus: false,
+  });
+
+  // 데이터 추출
+  const user = profileData?.user || null;
+  const todos = profileData?.todos || {
+    pending: 0,
+    success: 0,
+    retry: 0,
+    archive: 0,
+  };
+  const totalRetryCount = profileData?.totalRetryCount || 0;
+
+  // 통계 계산
+  const total = todos.pending + todos.success + todos.retry + todos.archive;
+
+  const stats: StatItem[] = [
+    {
+      value: total,
+      label: "전체",
+      icon: <TrendingUp className="w-4 h-4" />,
+      bgColor: "bg-gradient-to-br from-slate-500 to-slate-600",
+    },
+    {
+      value: todos.success,
+      label: "성공",
+      color: "text-green-600",
+      icon: <CheckCircle className="w-4 h-4" />,
+      bgColor: "bg-gradient-to-br from-emerald-400 to-emerald-500",
+    },
+    {
+      value: todos.pending,
+      label: "대기",
+      color: "text-yellow-500",
+      icon: <Clock className="w-4 h-4" />,
+      bgColor: "bg-gradient-to-br from-amber-400 to-amber-500",
+    },
+    {
+      value: todos.retry,
+      label: "다시",
+      color: "text-red-500",
+      icon: <RefreshCw className="w-4 h-4" />,
+      bgColor: "bg-gradient-to-br from-rose-400 to-rose-500",
+    },
+    {
+      value: todos.archive,
+      label: "보류",
+      color: "text-blue-500",
+      icon: <Archive className="w-4 h-4" />,
+      bgColor: "bg-gradient-to-br from-sky-400 to-sky-500",
+    },
   ];
 
   const emotionStats: EmotionStat[] = useMemo(() => {
@@ -54,13 +104,15 @@ export default function ProfilePage() {
     ];
 
     return baseEmotions.map((emotion) => {
-      const userStat = userStats.find((stat) => stat.label === emotion.label);
+      const userStat = profileData?.stickers?.find(
+        (stat: { label: string; count: number }) => stat.label === emotion.label
+      );
       return {
         ...emotion,
         count: userStat?.count || 0,
       };
     });
-  }, [userStats]);
+  }, [profileData?.stickers]);
 
   const onLogout = async () => {
     if (isGuest) {
@@ -104,39 +156,6 @@ export default function ProfilePage() {
   const handleLogin = () => {
     router.push("/login");
   };
-
-  useEffect(() => {
-    if (isGuest) {
-      // 게스트 모드일 때는 API 호출하지 않음
-      return;
-    }
-
-    const userProfile = async () => {
-      try {
-        const response = await getUserProfileStats();
-        setUser(response.user);
-        setUserStats(response.stickers);
-
-        const pending = response.todos.pending || 0;
-        const success = response.todos.success || 0;
-        const retry = response.todos.retry || 0;
-        const archive = response.todos.archive || 0;
-
-        const total = pending + retry + success + archive;
-
-        setTotal(total);
-        setPending(pending);
-        setSuccess(success);
-        setRetry(retry);
-        setArchive(archive);
-
-        setTotalRetryCount(response.totalRetryCount || 0);
-      } catch (error) {
-        console.error("프로필 정보 로드 실패:", error);
-      }
-    };
-    userProfile();
-  }, [isGuest]);
 
   // 게스트 모드일 때 로그인 필요 메시지 표시
   if (isGuest) {
@@ -210,76 +229,129 @@ export default function ProfilePage() {
 
   return (
     <MobileLayout headerTitle="나의 정보">
-      <div className="px-4 py-6 space-y-6">
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              <User className="w-8 h-8 text-white" />
-            </div>
-            <div className="flex-1">
-              <h1 className="text-xl font-bold text-gray-900 mb-1">
-                {user?.username} 님
-              </h1>
-              <div className="flex items-center text-gray-500">
-                <Mail className="w-4 h-4 mr-2" />
-                <span className="text-sm">{user?.email}</span>
+      {isLoading ? (
+        <PageSkeleton />
+      ) : (
+        <div className="px-4 py-6 space-y-6">
+          <>
+            {/* 프로필 섹션 */}
+            <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-3xl shadow-sm p-6 border border-gray-200">
+              <div className="flex items-center space-x-4">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-2xl font-bold text-white">
+                    {user?.username?.charAt(0)?.toUpperCase() || "U"}
+                  </span>
+                </div>
+                <div className="flex-1">
+                  <h1 className="text-2xl font-bold text-gray-900 mb-1">
+                    {user?.username || "사용자"}
+                  </h1>
+                  <p className="text-gray-600 text-sm">
+                    {user?.email || "이메일 정보 없음"}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            할 일 통계
-          </h2>
+            {/* 할 일 통계 섹션 */}
+            <div className="bg-white rounded-3xl shadow-sm p-6 border border-gray-100">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-gray-900 flex items-center">
+                  <TrendingUp className="w-5 h-5 mr-2 text-blue-500" />할 일
+                  통계
+                </h2>
 
-          {/* ✅ 한 줄에 5개 꽉 채움 */}
-          <div className="grid grid-cols-5 gap-2">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="bg-gray-50 rounded-xl p-2 text-center"
+                {/* 기간 필터 */}
+                <div className="flex bg-gray-100 rounded-lg p-1">
+                  {[
+                    { key: "all", label: "전체" },
+                    { key: "month", label: "1개월" },
+                    { key: "week", label: "1주일" },
+                  ].map(({ key, label }) => (
+                    <button
+                      key={key}
+                      onClick={() => setPeriod(key as "all" | "month" | "week")}
+                      className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                        period === key
+                          ? "bg-white text-blue-600 shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 통계 카드들 */}
+              <div className="grid grid-cols-5 gap-3 mb-6">
+                {stats.map((stat: StatItem) => (
+                  <div key={stat.label} className="relative">
+                    <div
+                      className={`${stat.bgColor} rounded-2xl p-3 text-center shadow-md`}
+                    >
+                      <div className="flex justify-center mb-2">
+                        <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                          {stat.icon}
+                        </div>
+                      </div>
+                      <div className="text-2xl font-bold text-white mb-1">
+                        {stat.value}
+                      </div>
+                      <div className="text-xs font-medium text-white/90">
+                        {stat.label}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Retry 횟수 */}
+              <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-2xl p-4 border border-gray-200">
+                <div className="flex items-center justify-center">
+                  <RefreshCw className="w-5 h-5 mr-2 text-gray-600" />
+                  <span className="text-sm font-medium text-gray-700">
+                    총 Retry 횟수:{" "}
+                    <span className="font-bold text-gray-800 text-lg">
+                      {totalRetryCount}
+                    </span>{" "}
+                    회
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500 text-center mt-2">
+                  {period === "all" && "전체 기간"}
+                  {period === "month" && "최근 1개월"}
+                  {period === "week" && "최근 1주일"}
+                </div>
+              </div>
+            </div>
+
+            {/* 감정 기록 통계 섹션 */}
+            <div className="bg-white rounded-3xl shadow-sm p-6 border border-gray-100">
+              <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
+                <div className="w-5 h-5 mr-2 bg-gradient-to-br from-slate-400 to-gray-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs">💭</span>
+                </div>
+                감정 기록 통계
+              </h2>
+              <EmotionStatList stats={emotionStats} />
+            </div>
+
+            {/* 로그아웃 버튼 */}
+            <div className="bg-white rounded-3xl shadow-sm overflow-hidden border border-gray-100">
+              <Button
+                variant="ghost"
+                fullWidth
+                onClick={onLogout}
+                className="flex items-center justify-start px-6 py-4 text-left text-red-600 hover:bg-red-50 transition-colors duration-200"
               >
-                <StatCard
-                  value={stat.value}
-                  label={stat.label}
-                  color={stat.color}
-                />
-              </div>
-            ))}
-          </div>
-
-          {/* ✅ retryCount 총합 표시 */}
-          <div className="mt-3 text-center">
-            <p className="text-sm text-gray-500">
-              총 Retry 횟수:{" "}
-              <span className="font-bold text-text-red-500">
-                {totalRetryCount}
-              </span>{" "}
-              회
-            </p>
-          </div>
+                <LogOut className="w-5 h-5 mr-3 text-red-500" />
+                <span className="font-medium">로그아웃</span>
+              </Button>
+            </div>
+          </>
         </div>
-
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            감정 기록 통계
-          </h2>
-          <EmotionStatList stats={emotionStats} />
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <Button
-            variant="ghost"
-            fullWidth
-            onClick={onLogout}
-            className="flex items-center justify-start px-6 py-4 text-left text-red-600 hover:bg-red-50"
-          >
-            <LogOut className="w-5 h-5 mr-3 text-red-500" />
-            <span>로그아웃</span>
-          </Button>
-        </div>
-      </div>
+      )}
     </MobileLayout>
   );
 }

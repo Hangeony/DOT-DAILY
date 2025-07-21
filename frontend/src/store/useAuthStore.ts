@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 interface User {
   id: string;
@@ -11,6 +11,7 @@ interface AuthState {
   isGuest: boolean;
   isAuthenticated: boolean;
   accessToken: string | null;
+  initialize: () => void;
   login: (user: User, token: string) => void;
   logout: () => void;
   setGuestMode: () => void;
@@ -24,22 +25,47 @@ const useAuthStore = create<AuthState>()(
       isGuest: false,
       isAuthenticated: false,
       accessToken: null,
-      
-      login: (user: User, token: string) => 
+
+      // 초기화 시 토큰이 있으면 인증 상태 복원
+      initialize: () => {
+        if (typeof window !== "undefined") {
+          const token = localStorage.getItem("accessToken");
+          const authStorage = localStorage.getItem("auth-storage");
+
+          if (token && authStorage) {
+            try {
+              const authData = JSON.parse(authStorage);
+              if (authData.state?.isAuthenticated && authData.state?.user) {
+                console.log("🔄 인증 상태 복원:", authData.state);
+                set({
+                  user: authData.state.user,
+                  isAuthenticated: true,
+                  isGuest: false,
+                  accessToken: token,
+                });
+              }
+            } catch (error) {
+              console.error("인증 상태 복원 실패:", error);
+            }
+          }
+        }
+      },
+
+      login: (user: User, token: string) =>
         set({
           user,
           isAuthenticated: true,
           isGuest: false,
           accessToken: token,
         }),
-      
+
       logout: () => {
         // 로컬 스토리지에서 모든 인증 관련 데이터 제거
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('auth-storage');
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("auth-storage");
         }
-        
+
         set({
           user: null,
           isAuthenticated: false,
@@ -47,16 +73,16 @@ const useAuthStore = create<AuthState>()(
           accessToken: null,
         });
       },
-      
-      setGuestMode: () => 
+
+      setGuestMode: () =>
         set({
           user: null,
           isAuthenticated: false,
           isGuest: true,
           accessToken: null,
         }),
-      
-      clearGuestMode: () => 
+
+      clearGuestMode: () =>
         set({
           user: null,
           isAuthenticated: false,
@@ -65,7 +91,9 @@ const useAuthStore = create<AuthState>()(
         }),
     }),
     {
-      name: 'auth-storage',
+      name: "auth-storage",
+      storage: createJSONStorage(() => localStorage),
+      skipHydration: false, // hydration 활성화
       partialize: (state) => ({
         user: state.user,
         isGuest: state.isGuest,
@@ -77,4 +105,4 @@ const useAuthStore = create<AuthState>()(
 );
 
 export { useAuthStore };
-export type { User, AuthState }; 
+export type { User, AuthState };

@@ -23,6 +23,12 @@ const Calendar = ({ onDateModalOpen }: CalendarProps) => {
   const calendarRef = useRef<FullCalendar>(null);
 
   const onDateClick = (dateInfo: DateClickArg) => {
+    console.log("📅 날짜 클릭:", {
+      clickedDate: dateInfo.date,
+      clickedDateString: formatDateToString(dateInfo.date),
+      currentSelectedDate: selectedDate,
+      currentSelectedDateString: formatDateToString(selectedDate),
+    });
     setSelectedDate(dateInfo.date);
   };
 

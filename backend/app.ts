@@ -8,7 +8,7 @@ import routers from './router/index';
 import { startBatchJobs } from './jobs/cron';
 
 const app = express();
-const port = 3000;
+const port = 3001;
 
 //기본 미들웨어
 app.use(cors());

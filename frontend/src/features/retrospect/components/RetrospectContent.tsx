@@ -1,31 +1,39 @@
-import { EMOTIONS } from '@/constants/emotion';
-import { useDateStore } from '@/store/useDateStore';
-import { formatDateToString, formatDisplayDate } from '../../../utils/retrospectUtils';
-import { useMemo } from 'react';
-import { useRetrospectStore } from '@/store/useRestrospectStore';
-import { useFullScreenModal } from '@/components/ui/Modal/providers/FullScreenModalProvider';
-import { useRetrospectModal } from '../../../hooks/useRestrospectModal';
-import Image from 'next/image';
-import { Pencil, Trash2 } from 'lucide-react';
+import { EMOTIONS } from "@/constants/emotion";
+import { useDateStore } from "@/store/useDateStore";
+import { formatDisplayDate } from "../../../utils/retrospectUtils";
+import { useMemo } from "react";
+import { useRetrospectStore } from "@/store/useRestrospectStore";
+import { useFullScreenModal } from "@/components/ui/Modal/providers/FullScreenModalProvider";
+import { useRetrospectModal } from "../../../hooks/useRestrospectModal";
+import Image from "next/image";
+import { Pencil, Trash2 } from "lucide-react";
 
 const RetrospectContent = () => {
   const { selectedDate } = useDateStore();
   const { emotionMemoList } = useRetrospectStore();
   const { openModal } = useFullScreenModal();
   const { onDelete } = useRetrospectModal();
-  
+
   const selectedEmotionMemo = useMemo(() => {
-    return emotionMemoList.find(item => {
-      return formatDateToString(item.date) === formatDateToString(selectedDate);
+    // 모든 날짜 비교 시도 - 로컬 날짜 문자열로 비교
+    const found = emotionMemoList.find((item) => {
+      // 로컬 시간대 기준으로 YYYY-MM-DD 형식으로 비교
+      const itemDateStr = item.date.toLocaleDateString("en-CA"); // YYYY-MM-DD 형식
+      const selectedDateStr = selectedDate.toLocaleDateString("en-CA"); // YYYY-MM-DD 형식
+      const isMatch = itemDateStr === selectedDateStr;
+
+      return isMatch;
     });
+
+    return found;
   }, [emotionMemoList, selectedDate]);
-  
-  const emotion = selectedEmotionMemo?.emotion || '';
-  const memo = selectedEmotionMemo?.memo || '';
-  const emotionLabel = EMOTIONS.find(e => e.id === emotion)?.label;
+
+  const emotion = selectedEmotionMemo?.emotion || "";
+  const memo = selectedEmotionMemo?.memo || "";
+  const emotionLabel = EMOTIONS.find((e) => e.id === emotion)?.label;
 
   const onEdit = () => {
-    openModal('retrospectForm');
+    openModal("retrospectForm");
   };
 
   return (
@@ -36,9 +44,10 @@ const RetrospectContent = () => {
         rounded-lg
         min-h-[160px]
         p-4
-      ">
-      <header className='mb-3 flex justify-between items-center'>
-        <div className='text-zinc-700 font-kkonghae'>
+      "
+    >
+      <header className="mb-3 flex justify-between items-center">
+        <div className="text-zinc-700 font-kkonghae">
           {formatDisplayDate(selectedDate)}
         </div>
         {emotion && (
@@ -64,12 +73,19 @@ const RetrospectContent = () => {
       {emotion ? (
         <div className="space-y-3">
           <figure className="flex gap-3 items-center">
-            <Image src={`/${emotion}-on.svg`} alt={`${emotionLabel} 이모션`} width={40} height={40} />
-            <figcaption className='font-kkonghae'>{emotionLabel}</figcaption>
+            <Image
+              src={`/${emotion}-on.svg`}
+              alt={`${emotionLabel} 이모션`}
+              width={40}
+              height={40}
+            />
+            <figcaption className="font-kkonghae">{emotionLabel}</figcaption>
           </figure>
           {memo && (
             <div className="bg-white rounded-lg p-3">
-              <p className="text-zinc-700 font-kkonghae text-sm leading-relaxed">{memo}</p>
+              <p className="text-zinc-700 font-kkonghae text-sm leading-relaxed">
+                {memo}
+              </p>
             </div>
           )}
         </div>
@@ -85,4 +101,4 @@ const RetrospectContent = () => {
   );
 };
 
-export default RetrospectContent; 
+export default RetrospectContent;

@@ -1,9 +1,8 @@
 import axios, { AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import { config } from "@/lib/config";
 
-const BASE_URL = process.env.NODE_ENV === "development" 
-  ? "http://localhost:3000/api/v1" 
-  : "https://dot-daily.onrender.com/api/v1";
-const DEFAULT_TIMEOUT = 30000; // 30초로 단축
+const BASE_URL = config.api.baseURL;
+const DEFAULT_TIMEOUT = config.api.timeout;
 
 const isBrowser = () => typeof window !== "undefined";
 
@@ -27,7 +26,9 @@ httpClient.interceptors.request.use(
           if (authData.state?.isGuest) {
             // 게스트 모드일 때는 요청을 중단
             console.log("🚫 게스트 모드: API 요청 중단");
-            return Promise.reject(new Error("Guest mode - API request blocked"));
+            return Promise.reject(
+              new Error("Guest mode - API request blocked")
+            );
           }
         } catch (e) {
           console.warn("Auth storage 파싱 실패:", e);

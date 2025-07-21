@@ -1,38 +1,49 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/Button/Button';
-import EmotionSelector from './EmotionSelector';
-import { motion } from 'framer-motion';
-import { useDateStore } from '@/store/useDateStore';
-import { useRetrospectStore } from '@/store/useRestrospectStore';
-import { formatDateToString, formatDisplayDate } from '../../../utils/retrospectUtils';
-import { useState, useEffect, useMemo } from 'react';
-import Image from 'next/image';
-import { Emotion } from '@/constants/emotion';
-import { Trash2 } from 'lucide-react';
+import { Button } from "@/components/ui/Button/Button";
+import EmotionSelector from "./EmotionSelector";
+import { motion } from "framer-motion";
+import { useDateStore } from "@/store/useDateStore";
+import { useRetrospectStore } from "@/store/useRestrospectStore";
+import {
+  formatDateToString,
+  formatDisplayDate,
+} from "../../../utils/retrospectUtils";
+import { useState, useEffect, useMemo } from "react";
+import Image from "next/image";
+import { Emotion } from "@/constants/emotion";
+import { Trash2 } from "lucide-react";
 
 interface RetrospectModalProps {
   onClose: () => void;
-  onSubmit: (emotion: Emotion['id'] | '', retrospectText: string) => void;
-  onUpdate: (emotion: Emotion['id'] | '', retrospectText: string) => void;
+  onSubmit: (emotion: Emotion["id"] | "", retrospectText: string) => void;
+  onUpdate: (emotion: Emotion["id"] | "", retrospectText: string) => void;
   onDelete: () => void;
 }
 
-export default function RetrospectModal({ onClose, onSubmit, onUpdate, onDelete }: RetrospectModalProps) {
+export default function RetrospectModal({
+  onClose,
+  onSubmit,
+  onUpdate,
+  onDelete,
+}: RetrospectModalProps) {
   const { selectedDate } = useDateStore();
   const { emotionMemoList } = useRetrospectStore();
 
   // 현재 선택된 날짜의 기존 회고 데이터 찾기
   const existingMemo = useMemo(() => {
-    return emotionMemoList.find(item =>
-      formatDateToString(item.date) === formatDateToString(selectedDate)
+    return emotionMemoList.find(
+      (item) =>
+        formatDateToString(item.date) === formatDateToString(selectedDate)
     );
   }, [emotionMemoList, selectedDate]);
 
   const isEditMode = !!existingMemo;
 
-  const [retrospectText, setRetrospectText] = useState<string>('');
-  const [selectedEmotion, setSelectedEmotion] = useState<Emotion['id'] | ''>('');
+  const [retrospectText, setRetrospectText] = useState<string>("");
+  const [selectedEmotion, setSelectedEmotion] = useState<Emotion["id"] | "">(
+    ""
+  );
 
   // 수정 모드일 때 기존 데이터로 초기화
   useEffect(() => {
@@ -44,9 +55,14 @@ export default function RetrospectModal({ onClose, onSubmit, onUpdate, onDelete 
 
   const onTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setRetrospectText(e.target.value);
-  }
+  };
 
   const onRetrospectSubmit = () => {
+    // 빈 텍스트 체크
+    if (!retrospectText.trim()) {
+      return;
+    }
+
     if (isEditMode) {
       onUpdate(selectedEmotion, retrospectText);
     } else {
@@ -57,10 +73,10 @@ export default function RetrospectModal({ onClose, onSubmit, onUpdate, onDelete 
   return (
     <motion.div
       key="retrospect-modal"
-      initial={{ y: '100%' }}
+      initial={{ y: "100%" }}
       animate={{ y: 0 }}
-      exit={{ y: '100%' }}
-      transition={{ type: 'tween', duration: 0.3 }}
+      exit={{ y: "100%" }}
+      transition={{ type: "tween", duration: 0.3 }}
       className="flex flex-col flex-1"
     >
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
@@ -68,7 +84,7 @@ export default function RetrospectModal({ onClose, onSubmit, onUpdate, onDelete 
           <Image src="/back.svg" alt="back" width={24} height={24} />
         </button>
         <h2 className="text-sm text-gray-400">
-          {isEditMode ? '회고 수정' : '오늘 회고'}
+          {isEditMode ? "회고 수정" : "오늘 회고"}
         </h2>
         {isEditMode && (
           <button
@@ -83,9 +99,14 @@ export default function RetrospectModal({ onClose, onSubmit, onUpdate, onDelete 
       </div>
 
       <div className="flex-1 px-6 py-4">
-        <EmotionSelector selectedEmotion={selectedEmotion} setSelectedEmotion={setSelectedEmotion} />
+        <EmotionSelector
+          selectedEmotion={selectedEmotion}
+          setSelectedEmotion={setSelectedEmotion}
+        />
         <section aria-label="회고 작성">
-          <label className="font-kkonghae">{formatDisplayDate(selectedDate)}</label>
+          <label className="font-kkonghae">
+            {formatDisplayDate(selectedDate)}
+          </label>
           <textarea
             value={retrospectText}
             onChange={onTextChange}
@@ -101,7 +122,7 @@ export default function RetrospectModal({ onClose, onSubmit, onUpdate, onDelete 
 
       <div className="px-4 pb-6">
         <Button
-          label={isEditMode ? '회고 수정하기' : '오늘 회고 등록하기'}
+          label={isEditMode ? "회고 수정하기" : "오늘 회고 등록하기"}
           size="lg"
           variant="primary"
           disabled={!selectedEmotion || !retrospectText.trim()}

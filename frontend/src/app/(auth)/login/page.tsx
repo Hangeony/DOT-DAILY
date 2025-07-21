@@ -1,7 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/Button/Button";
-import { Input } from "@/components/ui/Input/Input";
+import React from "react";
+import { Button } from "@/components/ui";
+import { Input } from "@/components/ui";
 import { httpClient } from "@/lib/api/http";
 import { validateEmail, validatePassword } from "@/utils/validation";
 import { Eye, EyeOff } from "lucide-react";
@@ -10,9 +11,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState, useEffect } from "react";
 import { useToast } from "@/components/ui/Toast/ToastProvider";
-import { useAuthStore } from "../../store/useAuthStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { GoogleOAuthProvider, useGoogleLogin } from "@react-oauth/google";
 import axios from "axios";
+import { config } from "@/lib/config";
 
 interface FormErrors {
   email?: string;
@@ -66,14 +68,32 @@ function LoginPageContent() {
 
       console.log("로그인 성공:", response.data);
 
-      // 백엔드 응답 구조에 따라 토큰 경로 확인
-      const accessToken =
-        response.data.data?.accessToken || response.data.accessToken;
-      if (accessToken) {
+      // 백엔드 응답 구조에 따라 토큰과 사용자 정보 추출
+      const responseData = response.data.data || response.data;
+      const accessToken = responseData.accessToken;
+      const user = {
+        id: responseData.id?.toString() || responseData.user?.id?.toString(),
+        email: responseData.email || responseData.user?.email,
+        name: responseData.username || responseData.user?.name,
+      };
+
+      if (accessToken && user.id) {
+        // Zustand store 업데이트
+        login(user, accessToken);
+
+        // localStorage에도 토큰 저장 (이중 안전장치)
         localStorage.setItem("accessToken", accessToken);
+
+        console.log("✅ 인증 상태 업데이트 완료:", {
+          user,
+          token: accessToken,
+        });
         router.push("/");
       } else {
-        console.error("토큰을 찾을 수 없습니다:", response.data);
+        console.error(
+          "토큰 또는 사용자 정보를 찾을 수 없습니다:",
+          responseData
+        );
         alert("로그인 처리 중 오류가 발생했습니다.");
       }
     } catch (error) {
@@ -95,7 +115,7 @@ function LoginPageContent() {
 
         // 백엔드로 전달
         const response = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/google/login`,
+          `${config.api.baseURL}/auth/google/login`,
           { accessToken } // credential 아님
         );
 
@@ -191,10 +211,13 @@ function LoginPageContent() {
           <button
             type="button"
             onClick={() => googleLogin()}
-            className="flex items-center justify-center gap-2 bg-white border hover:bg-gray-100 rounded-full py-3 font-bold text-gray-700 shadow transition"
+            disabled={!config.oauth.google.isEnabled}
+            className="flex items-center justify-center gap-2 bg-white border hover:bg-gray-100 rounded-full py-3 font-bold text-gray-700 shadow transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Image src="/google.svg" alt="구글 로그인" width={24} height={24} />
-            구글로 로그인
+            {config.oauth.google.isEnabled
+              ? "구글로 로그인"
+              : "구글 로그인 (설정 필요)"}
           </button>
         </div>
         <div className="flex justify-center gap-4 pt-2">
@@ -213,10 +236,19 @@ function LoginPageContent() {
   );
 }
 
-// ✅ GoogleOAuthProvider로 감싸기
+// ✅ GoogleOAuthProvider로 감싸기 (환경변수가 없으면 조건부 렌더링)
 export default function LoginPage() {
+  const googleClientId = config.oauth.google.clientId;
+
+  if (!googleClientId) {
+    console.warn(
+      "⚠️ Google OAuth 클라이언트 ID가 설정되지 않았습니다. Google 로그인이 비활성화됩니다."
+    );
+    return <LoginPageContent />;
+  }
+
   return (
-    <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
+    <GoogleOAuthProvider clientId={googleClientId}>
       <LoginPageContent />
     </GoogleOAuthProvider>
   );

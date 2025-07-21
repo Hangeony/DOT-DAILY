@@ -1,36 +1,57 @@
-'use client';
-import MobileLayout from '@/components/layout/MobileLayout';
-import Calendar from '@/features/retrospect/components/Calendar';
-import RetrospectContent from '@/features/retrospect/components/RetrospectContent';
-import { Button } from '@/components/ui/Button/Button';
-import { useFullScreenModal } from '@/components/ui/Modal/providers/FullScreenModalProvider';
-import { useRouter } from 'next/navigation';
-import { useRetrospectStore } from '@/store/useRestrospectStore';
-import { calculateConsecutiveDays } from '@/utils/retrospectUtils';
-import { useMemo } from 'react';
-import { useAuthStore } from '@/store/useAuthStore';
-import { Lock } from 'lucide-react';
+"use client";
+import MobileLayout from "@/components/layout/MobileLayout";
+import Calendar from "@/features/retrospect/components/Calendar";
+import RetrospectContent from "@/features/retrospect/components/RetrospectContent";
+import { Button } from "@/components/ui/Button/Button";
+import { useFullScreenModal } from "@/components/ui/Modal/providers/FullScreenModalProvider";
+import { useRouter } from "next/navigation";
+import { useRetrospectStore } from "@/store/useRestrospectStore";
+import { calculateConsecutiveDays } from "@/utils/retrospectUtils";
+import { useMemo, useEffect } from "react";
+import { useAuthStore } from "@/store/useAuthStore";
+import { Lock } from "lucide-react";
+import { getDailyEmotionMemos } from "@/lib/api/retrospect";
 
 export default function RetrospectPage() {
-  const { emotionMemoList } = useRetrospectStore();
+  const { emotionMemoList, setEmotionMemoList } = useRetrospectStore();
   const router = useRouter();
   const { openModal } = useFullScreenModal();
-  const { isGuest } = useAuthStore();
+  const { isGuest, isAuthenticated } = useAuthStore();
+
+  // 회고 데이터 초기 로딩
+  useEffect(() => {
+    const loadRetrospectData = async () => {
+      if (isAuthenticated && !isGuest && emotionMemoList.length === 0) {
+        try {
+          const currentDate = new Date();
+          const year = currentDate.getFullYear();
+          const month = currentDate.getMonth() + 1;
+
+          const data = await getDailyEmotionMemos(year, month);
+          setEmotionMemoList(data);
+        } catch (error) {
+          console.error("❌ 회고 데이터 로딩 실패:", error);
+        }
+      }
+    };
+
+    loadRetrospectData();
+  }, [isAuthenticated, isGuest, emotionMemoList.length, setEmotionMemoList]);
 
   const consecutiveDays = useMemo(() => {
     return calculateConsecutiveDays(emotionMemoList);
   }, [emotionMemoList]);
 
   const onTodayRetrospect = () => {
-    openModal('retrospectForm');
+    openModal("retrospectForm");
   };
 
   const onDateNavigation = () => {
-    openModal('dateNavigationForm');
+    openModal("dateNavigationForm");
   };
 
   const handleLogin = () => {
-    router.push('/login');
+    router.push("/login");
   };
 
   // 게스트 모드일 때 로그인 필요 메시지 표시
@@ -55,29 +76,41 @@ export default function RetrospectPage() {
           </div>
 
           <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">회고 기능이란?</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">
+              회고 기능이란?
+            </h2>
             <div className="space-y-3">
               <div className="flex items-start gap-3">
                 <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-gray-700 text-sm">하루를 돌아보며 느꼈던 감정을 솔직하게 기록</span>
+                <span className="text-gray-700 text-sm">
+                  하루를 돌아보며 느꼈던 감정을 솔직하게 기록
+                </span>
               </div>
               <div className="flex items-start gap-3">
                 <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-gray-700 text-sm">작은 성취나 배움도 소중한 경험으로 기록</span>
+                <span className="text-gray-700 text-sm">
+                  작은 성취나 배움도 소중한 경험으로 기록
+                </span>
               </div>
               <div className="flex items-start gap-3">
                 <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-gray-700 text-sm">매일매일의 기록이 모여 성장의 발자취</span>
+                <span className="text-gray-700 text-sm">
+                  매일매일의 기록이 모여 성장의 발자취
+                </span>
               </div>
               <div className="flex items-start gap-3">
                 <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-gray-700 text-sm">감정에 솔직해지는 것이 회고의 첫 번째 단계</span>
+                <span className="text-gray-700 text-sm">
+                  감정에 솔직해지는 것이 회고의 첫 번째 단계
+                </span>
               </div>
             </div>
           </div>
 
           <div className="bg-blue-50 rounded-lg p-4 space-y-3">
-            <h3 className="font-kkonghae text-lg text-blue-800">💡 회고 작성 팁</h3>
+            <h3 className="font-kkonghae text-lg text-blue-800">
+              💡 회고 작성 팁
+            </h3>
             <ul className="space-y-2 text-sm text-blue-700">
               <li className="flex items-start gap-2">
                 <span>•</span>
@@ -119,7 +152,9 @@ export default function RetrospectPage() {
           <RetrospectContent />
 
           <div className="bg-blue-50 rounded-lg p-4 space-y-3">
-            <h3 className="font-kkonghae text-lg text-blue-800">💡 회고 작성 팁</h3>
+            <h3 className="font-kkonghae text-lg text-blue-800">
+              💡 회고 작성 팁
+            </h3>
             <ul className="space-y-2 text-sm text-blue-700">
               <li className="flex items-start gap-2">
                 <span>•</span>
@@ -142,20 +177,26 @@ export default function RetrospectPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-green-50 rounded-lg p-3 text-center">
-              <div className="text-xl font-bold text-green-600 mb-1">{emotionMemoList.length}</div>
-              <div className="text-xs text-green-700 font-kkonghae">이번 달</div>
+              <div className="text-xl font-bold text-green-600 mb-1">
+                {emotionMemoList.length}
+              </div>
+              <div className="text-xs text-green-700 font-kkonghae">
+                이번 달
+              </div>
             </div>
             <div className="bg-purple-50 rounded-lg p-3 text-center">
-              <div className="text-xl font-bold text-purple-600 mb-1">{consecutiveDays}</div>
-              <div className="text-xs text-purple-700 font-kkonghae">연속 기록</div>
+              <div className="text-xl font-bold text-purple-600 mb-1">
+                {consecutiveDays}
+              </div>
+              <div className="text-xs text-purple-700 font-kkonghae">
+                연속 기록
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div
-        className="fixed bottom-24 left-0 right-0 max-w-md mx-auto px-4 z-10"
-      >
+      <div className="fixed bottom-24 left-0 right-0 max-w-md mx-auto px-4 z-10">
         <nav
           aria-label="날짜 이동 및 회고 작성"
           className="flex justify-center gap-2"
@@ -164,7 +205,7 @@ export default function RetrospectPage() {
             label="선택한 날짜로 이동"
             variant="outline"
             className="flex-1 max-w-[160px] text-sm py-2 shadow-lg"
-            onClick={() => router.push('/')}
+            onClick={() => router.push("/")}
           />
           <Button
             label="오늘 회고 작성하기"
