@@ -1,5 +1,10 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { registerController } from '../controller/register.controller';
+import {
+  loginController,
+  logoutController,
+} from '../controller/auth.controller';
+import { authenticate } from '../middlewares/authMiddleware';
 import { googleTokenService } from '../service/googleAuth.service';
 
 const router = express.Router();
@@ -7,15 +12,11 @@ const router = express.Router();
 // 회원가입
 router.post('/signup', registerController);
 
-// 일반 로그인 (임시)
-router.post('/login', (req: Request, res: Response): void => {
-  res.json({ message: '일반 로그인 구현 예정' });
-});
+// 로그인
+router.post('/login', loginController);
 
-// 로그아웃 (임시)
-router.post('/logout', (req: Request, res: Response): void => {
-  res.json({ message: '로그아웃 성공' });
-});
+// 로그아웃
+router.post('/logout', authenticate, logoutController);
 
 // Google 로그인
 router.post(
