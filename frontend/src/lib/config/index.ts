@@ -2,7 +2,10 @@
 export const config = {
   // API 설정
   api: {
-    baseURL: "https://dot-daily.onrender.com/api/v1", // 프로덕션 API 사용
+    baseURL:
+      process.env.NODE_ENV === "development"
+        ? "http://localhost:3001/api/v1" // 개발 환경
+        : "https://dot-daily.onrender.com/api/v1", // 프로덕션 API 사용
     timeout: 30000, // 30초
   },
 

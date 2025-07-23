@@ -14,7 +14,7 @@ import { TaskListSkeleton } from "@/components/ui/Skeleton";
 import { useDateStore } from "@/store/useDateStore";
 import BottomSheetModal from "@/components/ui/Modal/components/BottomSheetModal";
 import { useToast } from "@/components/ui/Toast/ToastProvider";
-import { useAuthStore } from "@/store/useAuthStore";
+import useAuthStore from "@/store/useAuthStore";
 import { Button } from "@/components/ui/Button/Button";
 import { Lock } from "lucide-react";
 import { useRouter } from "next/navigation";

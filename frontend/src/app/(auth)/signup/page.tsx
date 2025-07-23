@@ -14,7 +14,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState, useEffect } from "react";
-import { useAuthStore } from "@/store/useAuthStore";
+import useAuthStore from "@/store/useAuthStore";
 
 interface FormData {
   name: string;

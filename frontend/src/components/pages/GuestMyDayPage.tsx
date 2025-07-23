@@ -2,21 +2,19 @@
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import MobileLayout from "@/components/layout/MobileLayout";
-import {
-  DateHeader,
-  TaskListSkeleton,
-} from "@/features/myday/components";
+import { DateHeader, TaskListSkeleton } from "@/features/myday/components";
 import GuestTaskFormModal from "@/features/myday/components/GuestTaskFormModal";
 import GuestTaskGroup from "@/features/myday/components/GuestTaskGroup";
 import { Plus } from "lucide-react";
 import Fab from "@/components/ui/Fab/Fab";
 import { useDateStore } from "@/store/useDateStore";
 import { GuestTask, getGuestTasks, saveGuestTasks } from "@/lib/api/guestTasks";
+import { TaskPriority } from "@/lib/api/tasks";
 import FullScreenModal from "@/components/ui/Modal/components/FullScreenModal";
 import { useTaskCompletion } from "@/hooks/useTaskCompletion";
 import dynamic from "next/dynamic";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
-import { useAuthStore } from "../../store/useAuthStore";
+import useAuthStore from "../../store/useAuthStore";
 import { Button } from "@/components/ui/Button/Button";
 
 // 클라이언트 사이드에서만 로드
@@ -41,7 +39,7 @@ export default function GuestMyDayPage() {
   // 선택된 날짜의 태스크만 필터링
   const tasks = useMemo(() => {
     const dateStr = selectedDate.toISOString().split("T")[0];
-    return guestTasks.filter(task => task.date === dateStr);
+    return guestTasks.filter((task) => task.date === dateStr);
   }, [guestTasks, selectedDate]);
 
   // 초기 로딩
@@ -129,15 +127,15 @@ export default function GuestMyDayPage() {
       if (destination.droppableId === "must") {
         destTasks = mustTasks;
         setDestTasks = setMustTasks;
-        newPriority = "must" as import("@/lib/api/tasks").TaskPriority;
+        newPriority = "must" as TaskPriority;
       } else if (destination.droppableId === "should") {
         destTasks = shouldTasks;
         setDestTasks = setShouldTasks;
-        newPriority = "should" as import("@/lib/api/tasks").TaskPriority;
+        newPriority = "should" as TaskPriority;
       } else {
         destTasks = remindTasks;
         setDestTasks = setRemindTasks;
-        newPriority = "remind" as import("@/lib/api/tasks").TaskPriority;
+        newPriority = "remind" as TaskPriority;
       }
       const sourceArr = Array.from(sourceTasks);
       const destArr = Array.from(destTasks);
@@ -147,9 +145,9 @@ export default function GuestMyDayPage() {
       destArr.splice(destination.index, 0, updated);
       setSourceTasks(sourceArr);
       setDestTasks(destArr);
-      
+
       // 로컬 스토리지 업데이트
-      const updatedTasks = guestTasks.map(task => 
+      const updatedTasks = guestTasks.map((task) =>
         task.id === updated.id ? updated : task
       );
       setGuestTasks(updatedTasks);
@@ -262,4 +260,4 @@ export default function GuestMyDayPage() {
       <CelebrationEffect show={showCelebration} onComplete={hideCelebration} />
     </MobileLayout>
   );
-} 
+}

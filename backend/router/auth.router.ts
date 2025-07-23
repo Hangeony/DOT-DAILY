@@ -1,29 +1,59 @@
-// routes/auth.route.ts
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { registerController } from '../controller/register.controller';
-import {
-  loginController,
-  logoutController,
-  googleLoginController,
-  googleCallbackController,
-} from '../controller/auth.controller';
-import { authenticate } from '../middlewares/authMiddleware';
+import { googleTokenService } from '../service/googleAuth.service';
 
 const router = express.Router();
 
 // 회원가입
 router.post('/signup', registerController);
 
-// 로그인
-router.post('/login', loginController);
+// 일반 로그인 (임시)
+router.post('/login', (req: Request, res: Response): void => {
+  res.json({ message: '일반 로그인 구현 예정' });
+});
 
-// 로그아웃
-router.post('/logout', authenticate, logoutController);
+// 로그아웃 (임시)
+router.post('/logout', (req: Request, res: Response): void => {
+  res.json({ message: '로그아웃 성공' });
+});
 
 // Google 로그인
-router.post('/google/login', googleLoginController);
+router.post(
+  '/google/login',
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      console.log('🚀 Google 로그인 시작');
+      const { accessToken } = req.body;
 
-// Google 로그인 콜백 엔드포인트
-router.post('/google/callback', googleCallbackController);
+      if (!accessToken) {
+        res.status(400).json({
+          success: false,
+          message: 'Google access token이 필요합니다.',
+        });
+        return;
+      }
+
+      const result = await googleTokenService(accessToken);
+
+      res.json({
+        success: true,
+        accessToken: result.accessToken,
+        user: result.user,
+        message: 'Google 로그인 성공',
+      });
+    } catch (error) {
+      console.error('❌ Google 로그인 오류:', error);
+      res.status(401).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Google 로그인 실패',
+      });
+    }
+  }
+);
+
+// Google 콜백 (임시)
+router.post('/google/callback', (req: Request, res: Response): void => {
+  res.json({ message: 'Google 콜백 구현 예정' });
+});
 
 export default router;

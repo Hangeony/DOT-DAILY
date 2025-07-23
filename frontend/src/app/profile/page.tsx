@@ -15,7 +15,7 @@ import { logout } from "@/lib/api/auth";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { getUserProfileStats } from "@/lib/api/profile";
-import { useAuthStore } from "@/store/useAuthStore";
+import useAuthStore from "@/store/useAuthStore";
 import { useConfirm } from "@/components/ui/Modal/providers/ModalProvider";
 import { useQuery } from "@tanstack/react-query";
 import { PageSkeleton } from "@/components/ui/Skeleton";

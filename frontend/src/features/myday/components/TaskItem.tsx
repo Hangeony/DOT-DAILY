@@ -17,7 +17,7 @@ import { useDateStore } from "@/store/useDateStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast/ToastProvider";
 import { useConfirm } from "@/components/ui/Modal/providers/ModalProvider";
-import { useAuthStore } from "@/store/useAuthStore";
+import useAuthStore from "@/store/useAuthStore";
 
 // 공통 Task 인터페이스 (Task와 GuestTask를 모두 포함)
 interface CommonTask {
@@ -114,10 +114,13 @@ const TaskItem = React.memo(function TaskItem({
     if (stored) {
       try {
         const tasks = JSON.parse(stored);
-        const updatedTasks = tasks.map((t: Record<string, unknown>) => 
+        const updatedTasks = tasks.map((t: Record<string, unknown>) =>
           t.id === taskId ? { ...t, completed } : t
         );
-        localStorage.setItem(`guest-tasks-${dateStr}`, JSON.stringify(updatedTasks));
+        localStorage.setItem(
+          `guest-tasks-${dateStr}`,
+          JSON.stringify(updatedTasks)
+        );
         return true;
       } catch {
         return false;
@@ -132,8 +135,13 @@ const TaskItem = React.memo(function TaskItem({
     if (stored) {
       try {
         const tasks = JSON.parse(stored);
-        const updatedTasks = tasks.filter((t: Record<string, unknown>) => t.id !== taskId);
-        localStorage.setItem(`guest-tasks-${dateStr}`, JSON.stringify(updatedTasks));
+        const updatedTasks = tasks.filter(
+          (t: Record<string, unknown>) => t.id !== taskId
+        );
+        localStorage.setItem(
+          `guest-tasks-${dateStr}`,
+          JSON.stringify(updatedTasks)
+        );
         return true;
       } catch {
         return false;
@@ -148,11 +156,11 @@ const TaskItem = React.memo(function TaskItem({
       const taskId = task.id as string;
       const currentCompleted = task.completed || false;
       const newCompleted = !currentCompleted;
-      
+
       if (updateGuestTaskStatus(taskId, newCompleted)) {
         // 페이지 새로고침으로 상태 업데이트
         window.location.reload();
-        
+
         if (newCompleted) {
           setShowParticles(true);
           setTimeout(() => setShowParticles(false), 1000);
@@ -176,7 +184,10 @@ const TaskItem = React.memo(function TaskItem({
         title: task.title,
       });
 
-      const updatedTask = await toggleTaskStatus(task.id as number, originalStatus!);
+      const updatedTask = await toggleTaskStatus(
+        task.id as number,
+        originalStatus!
+      );
 
       console.log("✅ 서버 응답:", {
         id: updatedTask.id,
@@ -247,7 +258,9 @@ const TaskItem = React.memo(function TaskItem({
 
   const handlePostpone = async () => {
     if (isGuest) {
-      showToast("게스트 모드에서는 보류 기능을 사용할 수 없습니다. 로그인해주세요.");
+      showToast(
+        "게스트 모드에서는 보류 기능을 사용할 수 없습니다. 로그인해주세요."
+      );
       return;
     }
 
@@ -273,15 +286,15 @@ const TaskItem = React.memo(function TaskItem({
   };
 
   // 완료 상태 확인 (게스트 모드와 인증 모드 모두 지원)
-  const isCompleted = isGuest ? (task.completed || false) : (task.status === "success");
+  const isCompleted = isGuest
+    ? task.completed || false
+    : task.status === "success";
 
   const titleClassName = useMemo(
     () =>
       clsx(
         "text-sm font-medium transition-colors duration-200",
-        isCompleted
-          ? "line-through text-gray-500"
-          : "text-gray-900"
+        isCompleted ? "line-through text-gray-500" : "text-gray-900"
       ),
     [isCompleted]
   );

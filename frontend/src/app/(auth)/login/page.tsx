@@ -11,15 +11,24 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState, useEffect } from "react";
 import { useToast } from "@/components/ui/Toast/ToastProvider";
-import { useAuthStore } from "@/store/useAuthStore";
+import useAuthStore from "@/store/useAuthStore";
 import { GoogleOAuthProvider, useGoogleLogin } from "@react-oauth/google";
 import axios from "axios";
-import { config } from "@/lib/config";
 
 interface FormErrors {
   email?: string;
   password?: string;
 }
+
+// 환경변수에서 직접 가져오기
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+// 환경에 따른 API URL 설정
+const API_BASE_URL =
+  process.env.NODE_ENV === "production"
+    ? process.env.NEXT_PUBLIC_PRODUCTION_API_URL ||
+      "https://dot-daily.onrender.com/api/v1"
+    : process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001/api/v1";
 
 function LoginPageContent() {
   const [email, setEmail] = useState("");
@@ -94,11 +103,11 @@ function LoginPageContent() {
           "토큰 또는 사용자 정보를 찾을 수 없습니다:",
           responseData
         );
-        alert("로그인 처리 중 오류가 발생했습니다.");
+        showToast("로그인 처리 중 오류가 발생했습니다.");
       }
     } catch (error) {
       console.error("로그인 실패:", error);
-      alert("로그인 실패했습니다.");
+      showToast("로그인에 실패했습니다.");
     } finally {
       setIsLoading(false);
     }
@@ -108,34 +117,66 @@ function LoginPageContent() {
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
-        console.log("✅ 구글 응답:", tokenResponse);
+        console.log("✅ 구글 토큰 응답:", tokenResponse);
 
-        // access_token만 추출
+        // access_token 추출
         const accessToken = tokenResponse.access_token;
 
-        // 백엔드로 전달
+        if (!accessToken) {
+          throw new Error("Google access token이 없습니다.");
+        }
+
+        console.log("🔄 백엔드로 Google 토큰 전송 중...");
+
+        // 백엔드로 Google access token 전달
         const response = await axios.post(
-          `${config.api.baseURL}/auth/google/login`,
-          { accessToken } // credential 아님
+          `${API_BASE_URL}/auth/google/login`,
+          { accessToken },
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
         );
 
         console.log("✅ 백엔드 응답:", response.data);
 
+        // 백엔드 응답에서 직접 데이터 추출
         const jwt = response.data.accessToken;
         const user = response.data.user;
 
+        if (!jwt || !user) {
+          console.error("❌ 데이터 누락:", {
+            jwt: !!jwt,
+            user: !!user,
+            fullResponse: response.data,
+          });
+          throw new Error("백엔드에서 유효한 응답을 받지 못했습니다.");
+        }
+
+        // 토큰과 사용자 정보 저장
         localStorage.setItem("accessToken", jwt);
         login(user, jwt);
-        showToast("Google 로그인 성공 🎉");
+
+        showToast("Google 로그인 성공! 🎉");
         router.push("/");
       } catch (error) {
-        console.error("❌ Google 로그인 실패", error);
-        showToast("Google 로그인 실패");
+        console.error("❌ Google 로그인 실패:", error);
+
+        if (axios.isAxiosError(error)) {
+          console.error("Axios 오류 상세:", {
+            status: error.response?.status,
+            data: error.response?.data,
+            message: error.message,
+          });
+        }
+
+        showToast("Google 로그인에 실패했습니다.");
       }
     },
-    onError: () => {
-      console.error("❌ Google SDK 로그인 실패");
-      showToast("Google 로그인 실패");
+    onError: (error) => {
+      console.error("❌ Google OAuth SDK 오류:", error);
+      showToast("Google 로그인 중 오류가 발생했습니다.");
     },
   });
 
@@ -210,14 +251,14 @@ function LoginPageContent() {
           </button>
           <button
             type="button"
-            onClick={() => googleLogin()}
-            disabled={!config.oauth.google.isEnabled}
+            onClick={() => {
+              googleLogin();
+            }}
+            disabled={!GOOGLE_CLIENT_ID}
             className="flex items-center justify-center gap-2 bg-white border hover:bg-gray-100 rounded-full py-3 font-bold text-gray-700 shadow transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Image src="/google.svg" alt="구글 로그인" width={24} height={24} />
-            {config.oauth.google.isEnabled
-              ? "구글로 로그인"
-              : "구글 로그인 (설정 필요)"}
+            {GOOGLE_CLIENT_ID ? "구글로 로그인" : "구글 로그인 (설정 필요)"}
           </button>
         </div>
         <div className="flex justify-center gap-4 pt-2">
@@ -236,19 +277,29 @@ function LoginPageContent() {
   );
 }
 
-// ✅ GoogleOAuthProvider로 감싸기 (환경변수가 없으면 조건부 렌더링)
+// GoogleOAuthProvider로 감싸기
 export default function LoginPage() {
-  const googleClientId = config.oauth.google.clientId;
-
-  if (!googleClientId) {
+  // 환경변수에서 Google Client ID 확인
+  if (!GOOGLE_CLIENT_ID) {
     console.warn(
-      "⚠️ Google OAuth 클라이언트 ID가 설정되지 않았습니다. Google 로그인이 비활성화됩니다."
+      "⚠️ NEXT_PUBLIC_GOOGLE_CLIENT_ID 환경변수가 설정되지 않았습니다."
     );
+    console.warn("Google 로그인이 비활성화됩니다.");
     return <LoginPageContent />;
   }
 
+  console.log(
+    "✅ Google Client ID 설정됨:",
+    GOOGLE_CLIENT_ID.substring(0, 20) + "..."
+  );
+
   return (
-    <GoogleOAuthProvider clientId={googleClientId}>
+    <GoogleOAuthProvider
+      clientId={GOOGLE_CLIENT_ID}
+      onScriptLoadError={() => {
+        console.warn("Google OAuth 스크립트 로드 실패");
+      }}
+    >
       <LoginPageContent />
     </GoogleOAuthProvider>
   );

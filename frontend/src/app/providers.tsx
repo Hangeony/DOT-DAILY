@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { FullScreenModalProvider } from "@/components/ui/Modal/providers/FullScreenModalProvider";
 import { ModalProvider } from "@/components/ui/Modal/providers/ModalProvider";
 import { ToastProvider } from "@/components/ui/Toast/ToastProvider";
-import { useAuthStore } from "@/store/useAuthStore";
+import useAuthStore from "@/store/useAuthStore";
 
 function AuthInitializer() {
   const { initialize } = useAuthStore();

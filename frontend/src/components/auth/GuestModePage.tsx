@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button/Button";
-import { useAuthStore } from "../../store/useAuthStore";
+import useAuthStore from "../../store/useAuthStore";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -28,12 +28,10 @@ export default function GuestModePage() {
             priority
           />
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-2">
+            {/* <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-2">
               dot<span className="text-blue-400">.</span>daily
-            </h1>
-            <p className="text-gray-600 text-sm">
-              투두 + 회고 기록 앱
-            </p>
+            </h1> */}
+            <p className="text-gray-600 text-sm">투두 + 회고 기록 앱</p>
           </div>
         </div>
 
@@ -43,7 +41,7 @@ export default function GuestModePage() {
             onClick={() => router.push("/login")}
             className="w-full rounded-full py-3 text-lg font-bold shadow-md bg-gradient-to-r from-blue-500 to-blue-400 hover:from-blue-600 hover:to-blue-500 transition"
           />
-          
+
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300" />
@@ -74,4 +72,4 @@ export default function GuestModePage() {
       </div>
     </main>
   );
-} 
+}

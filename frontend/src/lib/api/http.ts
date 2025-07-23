@@ -39,9 +39,19 @@ httpClient.interceptors.request.use(
       if (token) {
         if (token.startsWith("Bearer ")) {
           config.headers["Authorization"] = token;
+          console.log(
+            "🔑 API 요청에 토큰 추가됨 (Bearer 포함):",
+            token.substring(0, 20) + "..."
+          );
         } else {
           config.headers["Authorization"] = `Bearer ${token}`;
+          console.log(
+            "🔑 API 요청에 토큰 추가됨 (Bearer 추가):",
+            token.substring(0, 20) + "..."
+          );
         }
+      } else {
+        console.log("⚠️ API 요청에 토큰이 없음");
       }
     }
 
@@ -68,22 +78,17 @@ httpClient.interceptors.response.use(
     }
 
     if (error.response?.status === 401 && isBrowser()) {
+      console.log("❌ 401 Unauthorized 오류 발생:", {
+        url: error.config?.url,
+        method: error.config?.method,
+        status: error.response?.status,
+      });
+
       localStorage.removeItem("accessToken");
-      // 게스트 모드가 아닐 때만 리다이렉트
-      const authStorage = localStorage.getItem("auth-storage");
-      if (authStorage) {
-        try {
-          const authData = JSON.parse(authStorage);
-          if (!authData.state?.isGuest) {
-            window.location.href = "/"; // 게스트 모드 선택 페이지로 이동
-          }
-        } catch (e) {
-          console.warn("Auth storage 파싱 실패:", e);
-          window.location.href = "/";
-        }
-      } else {
-        window.location.href = "/";
-      }
+      localStorage.removeItem("auth-storage");
+
+      // 로그인 페이지로 리다이렉트
+      window.location.href = "/login";
     }
     console.log("[Axios][Response Error]", error);
     return Promise.reject(error);

@@ -17,7 +17,7 @@ import { useTaskCompletion } from "@/hooks/useTaskCompletion";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
-import { useAuthStore } from "@/store/useAuthStore";
+import useAuthStore from "@/store/useAuthStore";
 
 // 클라이언트 사이드에서만 로드
 const CelebrationEffect = dynamic(
@@ -54,6 +54,16 @@ interface CommonTask {
 export default function MyDayPage() {
   const { selectedDate } = useDateStore();
   const { isGuest, isAuthenticated } = useAuthStore();
+
+  // 디버깅용 로그
+  useEffect(() => {
+    console.log("🔍 MyDayPage 인증 상태:", {
+      isAuthenticated,
+      isGuest,
+      selectedDate: selectedDate.toISOString().split("T")[0],
+      token: !!localStorage.getItem("accessToken"),
+    });
+  }, [isAuthenticated, isGuest, selectedDate]);
 
   const [editTask, setEditTask] = useState<CommonTask | null>(null);
   const [open, setOpen] = useState(false);
@@ -125,12 +135,19 @@ export default function MyDayPage() {
     staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    enabled:
-      isAuthenticated && // 인증된 사용자만
-      !isGuest && // 게스트 모드가 아니고
-      typeof window !== "undefined" &&
-      !!localStorage.getItem("accessToken"), // 토큰이 있을 때만 실행
+    enabled: isAuthenticated && !isGuest, // 간단한 조건으로 변경
   });
+
+  // API 호출 상태 로그
+  useEffect(() => {
+    console.log("🔍 API 호출 상태:", {
+      serverLoading,
+      isError,
+      error: error?.message,
+      tasksCount: tasks?.length || 0,
+      enabled: isAuthenticated && !isGuest,
+    });
+  }, [serverLoading, isError, error, tasks, isAuthenticated, isGuest]);
 
   // Task를 CommonTask로 변환하는 함수
   const convertTaskToCommon = useCallback(

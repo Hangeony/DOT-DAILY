@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useRetrospectStore } from "@/store/useRestrospectStore";
 import { calculateConsecutiveDays } from "@/utils/retrospectUtils";
 import { useMemo, useEffect } from "react";
-import { useAuthStore } from "@/store/useAuthStore";
+import useAuthStore from "@/store/useAuthStore";
 import { Lock } from "lucide-react";
 import { getDailyEmotionMemos } from "@/lib/api/retrospect";
 
