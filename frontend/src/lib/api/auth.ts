@@ -81,7 +81,7 @@ export const createGoogleUserData = async (userData: {
 
     console.log("✅ Google 사용자 데이터 생성 성공:", response.data);
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.log("⚠️ Google 사용자 데이터 생성 실패 (무시됨):", error);
     // 실패해도 무시 (이미 로그인은 성공했으므로)
     return null;

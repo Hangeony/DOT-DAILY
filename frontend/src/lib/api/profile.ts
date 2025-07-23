@@ -7,11 +7,19 @@ export const getUserProfileStats = async (
     const params = period && period !== "all" ? `?period=${period}` : "";
     const response = await httpClient.get(`user/stats${params}`);
     return response.data.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("❌ 사용자 통계 조회 실패:", error);
 
     // 500 에러 시 기본 통계 데이터 반환
-    if (error.response?.status === 500) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "response" in error &&
+      error.response &&
+      typeof error.response === "object" &&
+      "status" in error.response &&
+      error.response.status === 500
+    ) {
       console.log("🔄 500 에러 감지 - 기본 통계 데이터 반환");
 
       // localStorage에서 실제 사용자 정보 가져오기
