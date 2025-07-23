@@ -6,7 +6,7 @@ import { processExpiredTodos } from '../service/todoBatch.service';
  */
 export const startBatchJobs = () => {
   // 1. 자정마다 실행 (00:00)
-  cron.schedule('*/30 * * * *', async () => {
+  cron.schedule('0 0 * * *', async () => {
     console.log('[배치] 자정 배치 작업 실행 시작');
     try {
       const result = await processExpiredTodos();
