@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import MobileLayout from "@/components/layout/MobileLayout";
 import {
   TaskGroup,
@@ -54,6 +54,7 @@ interface CommonTask {
 export default function MyDayPage() {
   const { selectedDate } = useDateStore();
   const { isGuest, isAuthenticated } = useAuthStore();
+  const queryClient = useQueryClient();
 
   // 디버깅용 로그
   useEffect(() => {
@@ -121,6 +122,25 @@ export default function MyDayPage() {
     setGuestTasks,
     isLoading: guestLoading,
   } = useGuestTasks(selectedDate);
+
+  // 게스트 모드에서 할 일 저장/수정 성공 시 호출할 콜백
+  const handleGuestTaskSuccess = useCallback(() => {
+    // 게스트 모드일 때만 상태 업데이트
+    if (isGuest) {
+      // 로컬 스토리지에서 최신 데이터를 다시 불러와서 상태 업데이트
+      const dateStr = selectedDate.toISOString().split("T")[0];
+      const stored = localStorage.getItem(`guest-tasks-${dateStr}`);
+      if (stored) {
+        try {
+          const updatedTasks = JSON.parse(stored);
+          setGuestTasks(updatedTasks);
+        } catch {
+          // JSON 파싱 실패 시 빈 배열로 설정
+          setGuestTasks([]);
+        }
+      }
+    }
+  }, [isGuest, selectedDate, setGuestTasks]);
 
   // 인증된 사용자일 때 서버 API 사용
   const {
@@ -316,6 +336,9 @@ export default function MyDayPage() {
         // 서버에 priority 변경 동기화
         if (typeof updated.id === "number") {
           await updateTask(updated.id, { priority: newPriority });
+          // 특정 날짜의 캐시만 무효화
+          const dateKey = selectedDate.toISOString().split("T")[0];
+          queryClient.invalidateQueries({ queryKey: ["tasks", dateKey] });
         }
       }
     }
@@ -415,13 +438,14 @@ export default function MyDayPage() {
         </div>
       </DragDropContext>
 
-      <FullScreenModal open={open} onClose={handleClose}>
+      <FullScreenModal open={open} onClose={handleClose} variant="full">
         <TaskFormModal
           onClose={handleClose}
           defaultDate={selectedDate.toLocaleDateString("en-CA")} // YYYY-MM-DD 형식으로 한국 시간대 사용
           task={editTask || undefined}
           defaultPriority={defaultPriority}
           isGuest={isGuest}
+          onSuccess={handleGuestTaskSuccess}
         />
       </FullScreenModal>
 

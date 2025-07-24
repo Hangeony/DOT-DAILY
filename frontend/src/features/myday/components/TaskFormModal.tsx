@@ -13,7 +13,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/components/ui/Toast/ToastProvider";
 
-
 // 공통 Task 인터페이스 (Task와 GuestTask를 모두 포함)
 interface CommonTask {
   id: string | number;
@@ -35,6 +34,7 @@ interface TaskFormModalProps {
   task?: CommonTask;
   defaultPriority?: "must" | "should" | "remind";
   isGuest?: boolean;
+  onSuccess?: () => void; // 게스트 모드에서 성공 시 호출할 콜백
 }
 
 const inputSize: Size = "md";
@@ -51,7 +51,9 @@ const parseDate = (dateString: string): Date => {
 // 한국 시간대 기준으로 오늘 날짜를 가져오는 함수
 const getTodayInKorea = (): Date => {
   const now = new Date();
-  const koreaTime = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+  const koreaTime = new Date(
+    now.toLocaleString("en-US", { timeZone: "Asia/Seoul" })
+  );
   return koreaTime;
 };
 
@@ -61,6 +63,7 @@ export default function TaskFormModal({
   task,
   defaultPriority = "must",
   isGuest = false,
+  onSuccess,
 }: TaskFormModalProps) {
   const [label, setLabel] = useState(task ? task.title : "");
   const [priority, setPriority] = useState<"must" | "should" | "remind">(
@@ -87,9 +90,11 @@ export default function TaskFormModal({
     const dateStr = taskData.date;
     const stored = localStorage.getItem(`guest-tasks-${dateStr}`);
     const existingTasks = stored ? JSON.parse(stored) : [];
-    
+
     const newTask = {
-      id: task ? task.id : `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: task
+        ? task.id
+        : `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       title: taskData.title,
       priority: taskData.priority,
       completed: false,
@@ -101,7 +106,7 @@ export default function TaskFormModal({
     let updatedTasks;
     if (task) {
       // 수정 모드
-      updatedTasks = existingTasks.map((t: Record<string, unknown>) => 
+      updatedTasks = existingTasks.map((t: CommonTask) =>
         t.id === task.id ? { ...t, ...newTask } : t
       );
     } else {
@@ -109,7 +114,10 @@ export default function TaskFormModal({
       updatedTasks = [...existingTasks, newTask];
     }
 
-    localStorage.setItem(`guest-tasks-${dateStr}`, JSON.stringify(updatedTasks));
+    localStorage.setItem(
+      `guest-tasks-${dateStr}`,
+      JSON.stringify(updatedTasks)
+    );
     return true;
   };
 
@@ -133,8 +141,15 @@ export default function TaskFormModal({
       if (isGuest) {
         // 게스트 모드: 로컬 스토리지에 저장
         if (saveGuestTask(taskData)) {
-          showToast(task ? "할 일이 수정되었습니다! ✏️" : "새로운 할 일이 등록되었습니다! ✅");
-          window.location.reload(); // 페이지 새로고침으로 상태 업데이트
+          showToast(
+            task
+              ? "할 일이 수정되었습니다! ✏️"
+              : "새로운 할 일이 등록되었습니다! ✅"
+          );
+          // 성공 콜백 호출로 상태 업데이트 (페이지 새로고침 대신)
+          if (onSuccess) {
+            onSuccess();
+          }
         } else {
           showToast("할 일 저장에 실패했습니다 😭");
         }
@@ -158,8 +173,9 @@ export default function TaskFormModal({
 
       console.log("✅ 할 일 저장 성공:", newOrUpdatedTask);
 
-      // React Query 캐시 무효화 (모든 tasks 쿼리 새로고침)
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      // React Query 캐시 무효화 (특정 날짜의 tasks 쿼리만 새로고침)
+      const dateKey = format(date, "yyyy-MM-dd");
+      queryClient.invalidateQueries({ queryKey: ["tasks", dateKey] });
 
       onClose();
     } catch (error) {
@@ -182,10 +198,10 @@ export default function TaskFormModal({
         damping: 30,
         ease: "easeOut",
       }}
-      className="flex flex-col w-full flex-1"
+      className="flex flex-col w-full h-full max-h-screen"
     >
       <motion.div
-        className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 cursor-grab"
+        className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 cursor-grab"
         drag="y"
         dragElastic={0.1}
         dragConstraints={{ top: 0, bottom: 150 }}
@@ -209,7 +225,7 @@ export default function TaskFormModal({
         <div className="w-6" />
       </motion.div>
 
-      <div className="flex-1 px-6 py-4 space-y-6 overflow-y-auto">
+      <div className="flex-1 px-6 py-4 space-y-6 overflow-y-auto min-h-0 pb-4">
         <div className="flex flex-col gap-1">
           <label className="font-semibold">오늘 할 일을 적어주세요</label>
           <Input
@@ -289,14 +305,14 @@ export default function TaskFormModal({
         {isGuest && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
             <p className="text-yellow-800 text-sm">
-              💡 게스트 모드에서는 데이터가 로컬에만 저장됩니다. 
-              로그인하면 모든 기기에서 데이터를 동기화할 수 있어요!
+              💡 게스트 모드에서는 데이터가 로컬에만 저장됩니다. 로그인하면 모든
+              기기에서 데이터를 동기화할 수 있어요!
             </p>
           </div>
         )}
       </div>
 
-      <div className="flex-none px-4 pb-6 pt-2 bg-white">
+      <div className="flex-shrink-0 px-4 py-4 bg-white border-t border-gray-100">
         <Button
           size="lg"
           variant="primary"

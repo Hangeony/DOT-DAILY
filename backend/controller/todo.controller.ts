@@ -69,6 +69,15 @@ export const getAllTodosController = async (req: Request, res: Response) => {
   }
 };
 
+// 투두 조회 (date 쿼리 파라미터에 따라 분기)
+export const getTodosController = async (req: Request, res: Response) => {
+  const { date } = req.query;
+  if (date) {
+    return getTodosByDateController(req, res);
+  }
+  return getAllTodosController(req, res);
+};
+
 //투두 날짜별 조회
 export const getTodosByDateController = async (req: Request, res: Response) => {
   try {
