@@ -3,18 +3,12 @@ import { authenticate } from '../middlewares/authMiddleware';
 import {
   createTodoController,
   deleteTodoController,
-  getAllTodosController,
   getTodosByDateController,
   getTodosController,
   upDateTodoController,
   updateTodoStatusController,
   moveToArchiveController,
   moveToRetryController,
-  moveToTodayController,
-  getArchivedTodosController,
-  updateArchivedTodoController,
-  deleteArchivedTodoController,
-  restoreArchivedTodoController,
 } from '../controller/todo.controller';
 
 const router = express.Router();
@@ -37,21 +31,5 @@ router.put('/:id/status', authenticate, updateTodoStatusController);
 router.put('/:id/archive', authenticate, moveToArchiveController);
 // 재시도로 이동
 router.put('/:id/retry', authenticate, moveToRetryController);
-// 오늘로 이동
-router.put('/:id/today', authenticate, moveToTodayController);
-
-// 보관함 관련 엔드포인트
-// 보관함 투두 목록 조회
-router.get('/archived', authenticate, getArchivedTodosController);
-// 보관함 투두 수정
-router.put('/archived/:id', authenticate, updateArchivedTodoController);
-// 보관함 투두 삭제
-router.delete('/archived/:id', authenticate, deleteArchivedTodoController);
-// 보관함 투두 복구 (오늘로 이동)
-router.put(
-  '/archived/:id/restore',
-  authenticate,
-  restoreArchivedTodoController
-);
 
 export default router;
