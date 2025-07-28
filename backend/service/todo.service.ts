@@ -97,7 +97,7 @@ export const moveToArchiveService = async (todoId: number, userId: number) => {
   });
 };
 
-// 재시도로 이동 (retryCount 증가, 상태를 retry로 변경)
+// 재시도로 이동 (retryCount 증가, 상태를 retry로 변경, 다음날로 이동)
 export const moveToRetryService = async (todoId: number, userId: number) => {
   const todo = await prisma.todos.findFirst({
     where: { id: todoId, userId },
@@ -107,11 +107,17 @@ export const moveToRetryService = async (todoId: number, userId: number) => {
     return { count: 0 };
   }
 
+  // 다음날 날짜 계산 (KST 기준)
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowDateString = tomorrow.toISOString().split('T')[0];
+
   return await prisma.todos.updateMany({
     where: { id: todoId, userId },
     data: {
       status: 'retry',
       retryCount: todo.retryCount + 1,
+      date: tomorrowDateString, // 다음날로 이동
     },
   });
 };

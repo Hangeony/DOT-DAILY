@@ -6,7 +6,11 @@ import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
 import Checkbox from "@/components/ui/Checkbox/Checkbox";
-import { GuestTask, updateGuestTask, deleteGuestTask } from "@/lib/api/guestTasks";
+import {
+  GuestTask,
+  updateGuestTask,
+  deleteGuestTask,
+} from "@/lib/api/guestTasks";
 import { useToast } from "@/components/ui/Toast/ToastProvider";
 import { useConfirm } from "@/components/ui/Modal/providers/ModalProvider";
 
@@ -88,7 +92,7 @@ const GuestTaskItem = React.memo(function GuestTaskItem({
 
     try {
       const updatedTask = updateGuestTask(task.id, { status: newStatus });
-      
+
       if (updatedTask) {
         if (onUpdate) {
           onUpdate(); // 부모 컴포넌트에서 상태 업데이트
@@ -114,7 +118,7 @@ const GuestTaskItem = React.memo(function GuestTaskItem({
 
     try {
       const success = deleteGuestTask(task.id);
-      
+
       if (success && onUpdate) {
         onUpdate(); // 부모 컴포넌트에서 상태 업데이트
         showToast("할 일이 삭제되었습니다 🗑️");
@@ -156,7 +160,10 @@ const GuestTaskItem = React.memo(function GuestTaskItem({
       </div>
 
       <Menu as="div" className="relative">
-        <Menu.Button className="p-1 rounded hover:bg-gray-100 transition-colors">
+        <Menu.Button
+          className="p-2 rounded hover:bg-gray-100 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+          aria-label="할 일 옵션 메뉴"
+        >
           <MoreHorizontal className="w-4 h-4 text-gray-500" />
         </Menu.Button>
         <Menu.Items className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
@@ -194,4 +201,4 @@ const GuestTaskItem = React.memo(function GuestTaskItem({
   );
 });
 
-export default GuestTaskItem; 
+export default GuestTaskItem;

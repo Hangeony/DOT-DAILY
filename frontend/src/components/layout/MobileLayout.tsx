@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import Header from "./Header";
 import { Footer } from "./Footer";
 import Fab from "../ui/Fab/Fab";
-import { Plus } from "lucide-react";
+import { Plus } from "@/components/ui/Icon";
 
 interface MobileLayoutProps {
   children: ReactNode;

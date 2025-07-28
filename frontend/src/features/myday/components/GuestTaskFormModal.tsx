@@ -5,10 +5,13 @@ import type { Size } from "@/components/ui/Input/Input";
 import { DatePicker } from "@/components/ui/Input/DatePicker";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button/Button";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import RadioButton from "@/components/ui/Radio/RadioButton";
-import { createGuestTask, updateGuestTask, GuestTask } from "@/lib/api/guestTasks";
+import {
+  createGuestTask,
+  updateGuestTask,
+  GuestTask,
+} from "@/lib/api/guestTasks";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/components/ui/Toast/ToastProvider";
 
@@ -130,7 +133,7 @@ export default function GuestTaskFormModal({
         }}
       >
         <button onClick={onClose} aria-label="뒤로가기">
-          <Image
+          <img
             src="/back.svg"
             alt="back"
             width={20}
@@ -216,10 +219,7 @@ export default function GuestTaskFormModal({
 
         <div className="flex flex-col gap-1">
           <label className="font-semibold">날짜를 선택해주세요</label>
-          <DatePicker
-            value={date}
-            onChange={setDate}
-          />
+          <DatePicker value={date} onChange={setDate} />
         </div>
       </div>
 
@@ -233,4 +233,4 @@ export default function GuestTaskFormModal({
       </div>
     </motion.div>
   );
-} 
+}

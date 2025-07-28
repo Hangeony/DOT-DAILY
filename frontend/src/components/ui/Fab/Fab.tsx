@@ -18,7 +18,7 @@ export default function Fab({ className, children, ...props }: FabProps) {
       rounded="full"
       // clsx를 사용해 기존 Button 스타일에 Fab 전용 스타일(크기, 그림자, 패딩)을 추가/재정의합니다.
       className={clsx(
-        "w-11 h-11 sm:w-12 sm:h-12 p-0 shadow-xl flex items-center justify-center hover:shadow-2xl transition-shadow duration-200",
+        "w-12 h-12 sm:w-14 sm:h-14 p-0 shadow-xl flex items-center justify-center hover:shadow-2xl transition-shadow duration-200",
         className
       )}
       {...props}

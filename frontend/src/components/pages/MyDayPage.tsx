@@ -3,21 +3,44 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import MobileLayout from "@/components/layout/MobileLayout";
 import {
-  TaskGroup,
   DateHeader,
   TaskListSkeleton,
   TaskFormModal,
 } from "@/features/myday/components";
-// import { Plus } from "lucide-react";
-// import Fab from "@/components/ui/Fab/Fab";
 import { useDateStore } from "@/store/useDateStore";
 import { getTasksByDate, Task, updateTask } from "@/lib/api/tasks";
 import FullScreenModal from "@/components/ui/Modal/components/FullScreenModal";
 import { useTaskCompletion } from "@/hooks/useTaskCompletion";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { DragDropContext, DropResult } from "@hello-pangea/dnd";
+import { DropResult } from "@hello-pangea/dnd";
 import useAuthStore from "@/store/useAuthStore";
+
+// DragDrop을 완전히 동적 로딩으로 분리
+const DragDropWrapper = dynamic(
+  () => import("@/components/ui/DragDrop/DragDropWrapper"),
+  {
+    loading: () => (
+      <div className="flex justify-center items-center h-32">
+        <div className="w-6 h-6 border-2 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    ),
+    ssr: false,
+  }
+);
+
+const TaskGroup = dynamic(
+  () =>
+    import("@/components/ui/DragDrop/DragDropWrapper").then((mod) => ({
+      default: mod.TaskGroup,
+    })),
+  {
+    loading: () => (
+      <div className="h-20 bg-gray-100 animate-pulse rounded-lg"></div>
+    ),
+    ssr: false,
+  }
+);
 
 // 클라이언트 사이드에서만 로드
 const CelebrationEffect = dynamic(
@@ -51,20 +74,44 @@ interface CommonTask {
   completed?: boolean;
 }
 
+// 게스트 모드용 로컬 스토리지 커스텀 훅
+function useGuestTasks(date: Date) {
+  const [guestTasks, setGuestTasks] = useState<GuestTask[]>([]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const dateStr = date.toISOString().split("T")[0];
+    const stored = localStorage.getItem(`guest-tasks-${dateStr}`);
+    if (stored) {
+      try {
+        setGuestTasks(JSON.parse(stored));
+      } catch {
+        setGuestTasks([]);
+      }
+    } else {
+      setGuestTasks([]);
+    }
+  }, [date]);
+
+  const updateGuestTasks = useCallback(
+    (newTasks: GuestTask[]) => {
+      if (typeof window === "undefined") return;
+
+      const dateStr = date.toISOString().split("T")[0];
+      setGuestTasks(newTasks);
+      localStorage.setItem(`guest-tasks-${dateStr}`, JSON.stringify(newTasks));
+    },
+    [date]
+  );
+
+  return { guestTasks, setGuestTasks: updateGuestTasks, isLoading: false };
+}
+
 export default function MyDayPage() {
   const { selectedDate } = useDateStore();
   const { isGuest, isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
-
-  // 디버깅용 로그
-  useEffect(() => {
-    console.log("🔍 MyDayPage 인증 상태:", {
-      isAuthenticated,
-      isGuest,
-      selectedDate: selectedDate.toISOString().split("T")[0],
-      token: !!localStorage.getItem("accessToken"),
-    });
-  }, [isAuthenticated, isGuest, selectedDate]);
 
   const [editTask, setEditTask] = useState<CommonTask | null>(null);
   const [open, setOpen] = useState(false);
@@ -72,49 +119,9 @@ export default function MyDayPage() {
     "must" | "should" | "remind"
   >("must");
 
-  const queryKey = useMemo(
-    () => ["tasks", selectedDate.toISOString().split("T")[0]],
-    [selectedDate]
-  );
-
-  // 게스트 모드용 로컬 스토리지 훅
-  const useGuestTasks = (date: Date) => {
-    const [guestTasks, setGuestTasks] = useState<GuestTask[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-      if (typeof window === "undefined") return;
-
-      const dateStr = date.toISOString().split("T")[0];
-      const stored = localStorage.getItem(`guest-tasks-${dateStr}`);
-      if (stored) {
-        try {
-          setGuestTasks(JSON.parse(stored));
-        } catch {
-          setGuestTasks([]);
-        }
-      } else {
-        setGuestTasks([]);
-      }
-      setIsLoading(false);
-    }, [date]);
-
-    const updateGuestTasks = useCallback(
-      (newTasks: GuestTask[]) => {
-        if (typeof window === "undefined") return;
-
-        const dateStr = date.toISOString().split("T")[0];
-        setGuestTasks(newTasks);
-        localStorage.setItem(
-          `guest-tasks-${dateStr}`,
-          JSON.stringify(newTasks)
-        );
-      },
-      [date]
-    );
-
-    return { guestTasks, setGuestTasks: updateGuestTasks, isLoading };
-  };
+  // 날짜별 쿼리 키 생성 (메모이제이션 최적화)
+  const dateKey = selectedDate.toISOString().split("T")[0];
+  const queryKey = useMemo(() => ["tasks", dateKey], [dateKey]);
 
   // 게스트 모드일 때 로컬 스토리지 사용
   const {
@@ -125,9 +132,7 @@ export default function MyDayPage() {
 
   // 게스트 모드에서 할 일 저장/수정 성공 시 호출할 콜백
   const handleGuestTaskSuccess = useCallback(() => {
-    // 게스트 모드일 때만 상태 업데이트
     if (isGuest) {
-      // 로컬 스토리지에서 최신 데이터를 다시 불러와서 상태 업데이트
       const dateStr = selectedDate.toISOString().split("T")[0];
       const stored = localStorage.getItem(`guest-tasks-${dateStr}`);
       if (stored) {
@@ -135,14 +140,13 @@ export default function MyDayPage() {
           const updatedTasks = JSON.parse(stored);
           setGuestTasks(updatedTasks);
         } catch {
-          // JSON 파싱 실패 시 빈 배열로 설정
           setGuestTasks([]);
         }
       }
     }
   }, [isGuest, selectedDate, setGuestTasks]);
 
-  // 인증된 사용자일 때 서버 API 사용
+  // 인증된 사용자일 때 서버 API 사용 (극도로 최적화된 설정)
   const {
     data: tasks,
     isLoading: serverLoading,
@@ -151,25 +155,11 @@ export default function MyDayPage() {
   } = useQuery({
     queryKey,
     queryFn: () => getTasksByDate(selectedDate),
-    refetchOnWindowFocus: false,
-    staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    enabled: isAuthenticated && !isGuest, // 간단한 조건으로 변경
+    // 글로벌 설정 사용 (더 적극적인 캐시)
+    enabled: isAuthenticated && !isGuest,
   });
 
-  // API 호출 상태 로그
-  useEffect(() => {
-    console.log("🔍 API 호출 상태:", {
-      serverLoading,
-      isError,
-      error: error?.message,
-      tasksCount: tasks?.length || 0,
-      enabled: isAuthenticated && !isGuest,
-    });
-  }, [serverLoading, isError, error, tasks, isAuthenticated, isGuest]);
-
-  // Task를 CommonTask로 변환하는 함수
+  // Task를 CommonTask로 변환하는 함수 (메모이제이션)
   const convertTaskToCommon = useCallback(
     (task: Task): CommonTask => ({
       id: task.id,
@@ -184,7 +174,7 @@ export default function MyDayPage() {
     []
   );
 
-  // GuestTask를 CommonTask로 변환하는 함수
+  // GuestTask를 CommonTask로 변환하는 함수 (메모이제이션)
   const convertGuestTaskToCommon = useCallback(
     (task: GuestTask): CommonTask => ({
       id: task.id,
@@ -198,7 +188,7 @@ export default function MyDayPage() {
     []
   );
 
-  // 현재 사용할 데이터 결정
+  // 현재 사용할 데이터 결정 (메모이제이션)
   const currentTasks: CommonTask[] = useMemo(() => {
     if (isGuest) {
       return guestTasks.map(convertGuestTaskToCommon);
@@ -406,7 +396,7 @@ export default function MyDayPage() {
       <div className="sticky top-0 z-10 bg-surface-base">
         <DateHeader />
       </div>
-      <DragDropContext onDragEnd={handleDragEnd}>
+      <DragDropWrapper onDragEnd={handleDragEnd}>
         <div className="px-4 py-10 space-y-8">
           <TaskGroup
             priority="must"
@@ -436,7 +426,7 @@ export default function MyDayPage() {
             onEdit={handleEdit}
           />
         </div>
-      </DragDropContext>
+      </DragDropWrapper>
 
       <FullScreenModal open={open} onClose={handleClose} variant="full">
         <TaskFormModal

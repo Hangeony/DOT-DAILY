@@ -27,7 +27,7 @@ export default function FullScreenModal({
   // 스타일 분기
   let modalClass = "";
   let overlay = null;
-  let containerClass = "fixed inset-0 z-[100] flex h-screen";
+  let containerClass = "fixed inset-0 z-[9999] flex h-screen";
   if (variant === "bottomSheet") {
     containerClass += " items-end justify-center";
   } else {
@@ -36,7 +36,7 @@ export default function FullScreenModal({
 
   if (variant === "full") {
     modalClass =
-      "relative w-full h-full flex flex-col bg-white overflow-hidden";
+      "relative w-full h-full max-w-md mx-auto flex flex-col bg-white overflow-hidden";
     overlay = null;
   } else if (variant === "card") {
     modalClass =

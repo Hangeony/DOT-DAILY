@@ -1,16 +1,41 @@
 "use client";
-import MobileLayout from "@/components/layout/MobileLayout";
-import Calendar from "@/features/retrospect/components/Calendar";
-import RetrospectContent from "@/features/retrospect/components/RetrospectContent";
-import { Button } from "@/components/ui/Button/Button";
-import { useFullScreenModal } from "@/components/ui/Modal/providers/FullScreenModalProvider";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useRetrospectStore } from "@/store/useRestrospectStore";
-import { calculateConsecutiveDays } from "@/utils/retrospectUtils";
-import { useMemo, useEffect } from "react";
-import useAuthStore from "@/store/useAuthStore";
-import { Lock } from "lucide-react";
 import { getDailyEmotionMemos } from "@/lib/api/retrospect";
+import { calculateConsecutiveDays } from "@/utils/retrospectUtils";
+import { useRetrospectStore } from "@/store/useRestrospectStore";
+import { useFullScreenModal } from "@/components/ui/Modal/providers/FullScreenModalProvider";
+import MobileLayout from "@/components/layout/MobileLayout";
+import { Button } from "@/components/ui/Button/Button";
+import useAuthStore from "@/store/useAuthStore";
+
+import dynamic from "next/dynamic";
+import { Lock } from "lucide-react";
+
+// 무거운 컴포넌트들을 dynamic import로 지연 로딩
+const Calendar = dynamic(
+  () => import("@/features/retrospect/components/Calendar"),
+  {
+    loading: () => (
+      <div className="h-96 bg-gray-100 rounded-lg animate-pulse flex items-center justify-center">
+        <div className="text-gray-500 text-sm">캘린더 로딩 중...</div>
+      </div>
+    ),
+    ssr: false,
+  }
+);
+
+const RetrospectContent = dynamic(
+  () => import("@/features/retrospect/components/RetrospectContent"),
+  {
+    loading: () => (
+      <div className="h-32 bg-gray-100 rounded-lg animate-pulse flex items-center justify-center">
+        <div className="text-gray-500 text-sm">회고 내용 로딩 중...</div>
+      </div>
+    ),
+    ssr: false,
+  }
+);
 
 export default function RetrospectPage() {
   const { emotionMemoList, setEmotionMemoList } = useRetrospectStore();

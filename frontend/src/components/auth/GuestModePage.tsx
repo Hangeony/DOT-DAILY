@@ -2,13 +2,9 @@
 
 import { Button } from "@/components/ui/Button/Button";
 import useAuthStore from "../../store/useAuthStore";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
 
 export default function GuestModePage() {
   const { setGuestMode } = useAuthStore();
-  const router = useRouter();
   const handleGuestMode = () => {
     console.log("🎮 게스트 모드 시작");
     setGuestMode();
@@ -20,12 +16,11 @@ export default function GuestModePage() {
     <main className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-b from-blue-50 to-white px-4">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl px-8 py-10 flex flex-col gap-8">
         <div className="flex flex-col items-center gap-4">
-          <Image
+          <img
             src="/logo-vertical.svg"
             alt="dot_daily logo"
-            width={80}
-            height={80}
-            priority
+            className="w-20 h-20"
+            style={{ width: "80px", height: "80px", display: "block" }}
           />
           <div className="text-center">
             {/* <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-2">
@@ -38,7 +33,7 @@ export default function GuestModePage() {
         <div className="space-y-4">
           <Button
             label="로그인하기"
-            onClick={() => router.push("/login")}
+            onClick={() => (window.location.href = "/login")}
             className="w-full rounded-full py-3 text-lg font-bold shadow-md bg-gradient-to-r from-blue-500 to-blue-400 hover:from-blue-600 hover:to-blue-500 transition"
           />
 
@@ -62,12 +57,12 @@ export default function GuestModePage() {
           <p className="text-xs text-gray-500 mb-4">
             게스트 모드에서는 데이터가 저장되지 않습니다
           </p>
-          <Link
+          <a
             href="/signup"
             className="text-blue-500 font-semibold hover:underline text-sm"
           >
             회원가입
-          </Link>
+          </a>
         </div>
       </div>
     </main>

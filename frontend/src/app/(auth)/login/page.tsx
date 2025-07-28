@@ -5,7 +5,7 @@ import { Button } from "@/components/ui";
 import { Input } from "@/components/ui";
 import { httpClient } from "@/lib/api/http";
 import { validateEmail, validatePassword } from "@/utils/validation";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "@/components/ui/Icon";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -287,11 +287,6 @@ export default function LoginPage() {
     console.warn("Google 로그인이 비활성화됩니다.");
     return <LoginPageContent />;
   }
-
-  console.log(
-    "✅ Google Client ID 설정됨:",
-    GOOGLE_CLIENT_ID.substring(0, 20) + "..."
-  );
 
   return (
     <GoogleOAuthProvider

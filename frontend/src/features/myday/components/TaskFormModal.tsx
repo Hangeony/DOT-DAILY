@@ -5,7 +5,6 @@ import type { Size } from "@/components/ui/Input/Input";
 import { DatePicker } from "@/components/ui/Input/DatePicker";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button/Button";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import RadioButton from "@/components/ui/Radio/RadioButton";
 import { createTask, updateTask, Task } from "@/lib/api/tasks";
@@ -188,131 +187,119 @@ export default function TaskFormModal({
 
   return (
     <motion.div
-      key="task-form-modal"
-      initial={{ y: 80, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: 80, opacity: 0 }}
-      transition={{
-        type: "spring",
-        stiffness: 300,
-        damping: 30,
-        ease: "easeOut",
-      }}
-      className="flex flex-col w-full h-full max-h-screen"
+      className="h-full max-h-screen flex flex-col bg-white"
+      initial={{ y: "100%" }}
+      animate={{ y: 0 }}
+      exit={{ y: "100%" }}
+      transition={{ type: "tween", duration: 0.3 }}
     >
-      <motion.div
-        className="flex-shrink-0 flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 cursor-grab"
-        drag="y"
-        dragElastic={0.1}
-        dragConstraints={{ top: 0, bottom: 150 }}
-        dragMomentum={false}
-        onDragEnd={(_, info) => {
-          if (info.offset.y > 80) {
-            onClose();
-          }
-        }}
-      >
-        <button onClick={onClose} aria-label="뒤로가기">
-          <Image
-            src="/back.svg"
-            alt="back"
-            width={20}
-            height={20}
-            style={{ width: 20, height: 20 }}
-          />
+      {/* 헤더 - 고정 */}
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-4 border-b border-gray-100 bg-white">
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-gray-600 hover:text-gray-800"
+        >
+          <img src="/back.svg" alt="뒤로 가기" width={24} height={24} />
         </button>
-        <h2 className="text-sm text-gray-400">오늘 할 일</h2>
-        <div className="w-6" />
-      </motion.div>
-
-      <div className="flex-1 px-6 py-4 space-y-6 overflow-y-auto min-h-0 pb-4">
-        <div className="flex flex-col gap-1">
-          <label className="font-semibold">오늘 할 일을 적어주세요</label>
-          <Input
-            variant="text"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="뭘 할 건가요?"
-            size={inputSize}
-          />
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="font-semibold">우선순위를 선택해주세요</label>
-          <div className="space-y-3 mt-2">
-            <RadioButton
-              name="priority"
-              value="must"
-              variant="must"
-              checked={priority === "must"}
-              onChange={() => setPriority("must")}
-              label={
-                <>
-                  <span
-                    className="inline-flex items-center justify-center w-5 h-5 mr-1 rounded-full bg-priority-must text-white text-xs font-bold text-center"
-                    style={{ lineHeight: "1.3rem" }}
-                  >
-                    1
-                  </span>
-                  <span className="text-red-500">오늘 무조건</span>
-                </>
-              }
-            />
-            <RadioButton
-              name="priority"
-              value="should"
-              variant="should"
-              checked={priority === "should"}
-              onChange={() => setPriority("should")}
-              label={
-                <>
-                  <span
-                    className="inline-flex items-center justify-center w-5 h-5 mr-1 rounded-full bg-priority-should text-white text-xs font-bold text-center"
-                    style={{ lineHeight: "1.3rem" }}
-                  >
-                    2
-                  </span>
-                  <span className="text-emerald-500">오늘이면 굿</span>
-                </>
-              }
-            />
-            <RadioButton
-              name="priority"
-              value="remind"
-              variant="remind"
-              checked={priority === "remind"}
-              onChange={() => setPriority("remind")}
-              label={
-                <>
-                  <span
-                    className="inline-flex items-center justify-center w-5 h-5 mr-1 rounded-full bg-priority-remind text-white text-xs font-bold text-center"
-                    style={{ lineHeight: "1.3rem" }}
-                  >
-                    3
-                  </span>
-                  <span className="text-blue-500">잊지말자</span>
-                </>
-              }
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="font-semibold">날짜를 선택해주세요</label>
-          <DatePicker value={date} onChange={setDate} size="md" />
-        </div>
-
-        {isGuest && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-            <p className="text-yellow-800 text-sm">
-              💡 게스트 모드에서는 데이터가 로컬에만 저장됩니다. 로그인하면 모든
-              기기에서 데이터를 동기화할 수 있어요!
-            </p>
-          </div>
-        )}
+        <h2 className="text-lg font-semibold">
+          {task ? "할 일 수정" : "할 일 등록"}
+        </h2>
+        <div className="w-6 h-6" /> {/* 우측 여백 */}
       </div>
 
-      <div className="flex-shrink-0 px-4 py-4 bg-white border-t border-gray-100">
+      {/* 내용 - 스크롤 가능 */}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="px-6 py-4 space-y-6 pb-32">
+          <div className="flex flex-col gap-1">
+            <label className="font-semibold">오늘 할 일을 적어주세요</label>
+            <Input
+              variant="text"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+              placeholder="뭘 할 건가요?"
+              size={inputSize}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="font-semibold">우선순위를 선택해주세요</label>
+            <div className="space-y-3 mt-2">
+              <RadioButton
+                name="priority"
+                value="must"
+                variant="must"
+                checked={priority === "must"}
+                onChange={() => setPriority("must")}
+                label={
+                  <>
+                    <span
+                      className="inline-flex items-center justify-center w-5 h-5 mr-1 rounded-full bg-priority-must text-white text-xs font-bold text-center"
+                      style={{ lineHeight: "1.3rem" }}
+                    >
+                      1
+                    </span>
+                    <span className="text-red-500">오늘 무조건</span>
+                  </>
+                }
+              />
+              <RadioButton
+                name="priority"
+                value="should"
+                variant="should"
+                checked={priority === "should"}
+                onChange={() => setPriority("should")}
+                label={
+                  <>
+                    <span
+                      className="inline-flex items-center justify-center w-5 h-5 mr-1 rounded-full bg-priority-should text-white text-xs font-bold text-center"
+                      style={{ lineHeight: "1.3rem" }}
+                    >
+                      2
+                    </span>
+                    <span className="text-emerald-500">오늘이면 굿</span>
+                  </>
+                }
+              />
+              <RadioButton
+                name="priority"
+                value="remind"
+                variant="remind"
+                checked={priority === "remind"}
+                onChange={() => setPriority("remind")}
+                label={
+                  <>
+                    <span
+                      className="inline-flex items-center justify-center w-5 h-5 mr-1 rounded-full bg-priority-remind text-white text-xs font-bold text-center"
+                      style={{ lineHeight: "1.3rem" }}
+                    >
+                      3
+                    </span>
+                    <span className="text-blue-500">잊지말자</span>
+                  </>
+                }
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="font-semibold">날짜를 선택해주세요</label>
+            <DatePicker value={date} onChange={setDate} size="md" />
+          </div>
+
+          {isGuest && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <p className="text-yellow-800 text-sm">
+                💡 게스트 모드에서는 데이터가 로컬에만 저장됩니다. 로그인하면
+                모든 기기에서 데이터를 동기화할 수 있어요!
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 푸터 - 고정 */}
+      <div className="flex-shrink-0 px-4 py-4 bg-white border-t border-gray-100 shadow-lg safe-area-inset-bottom">
         <Button
           size="lg"
           variant="primary"

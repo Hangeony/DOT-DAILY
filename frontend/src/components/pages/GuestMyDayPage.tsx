@@ -4,8 +4,7 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import MobileLayout from "@/components/layout/MobileLayout";
 import { DateHeader, TaskListSkeleton } from "@/features/myday/components";
 import GuestTaskFormModal from "@/features/myday/components/GuestTaskFormModal";
-import GuestTaskGroup from "@/features/myday/components/GuestTaskGroup";
-import { Plus } from "lucide-react";
+import { Plus } from "@/components/ui/Icon";
 import Fab from "@/components/ui/Fab/Fab";
 import { useDateStore } from "@/store/useDateStore";
 import { GuestTask, getGuestTasks, saveGuestTasks } from "@/lib/api/guestTasks";
@@ -13,7 +12,10 @@ import { TaskPriority } from "@/lib/api/tasks";
 import FullScreenModal from "@/components/ui/Modal/components/FullScreenModal";
 import { useTaskCompletion } from "@/hooks/useTaskCompletion";
 import dynamic from "next/dynamic";
-import { DragDropContext, DropResult } from "@hello-pangea/dnd";
+import { DropResult } from "@hello-pangea/dnd";
+import DragDropWrapper, {
+  GuestTaskGroup,
+} from "@/components/ui/DragDrop/DragDropWrapper";
 import useAuthStore from "../../store/useAuthStore";
 import { Button } from "@/components/ui/Button/Button";
 
@@ -31,7 +33,7 @@ export default function GuestMyDayPage() {
   const [defaultPriority, setDefaultPriority] = useState<
     "must" | "should" | "remind"
   >("must");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   // 게스트 태스크 상태
   const [guestTasks, setGuestTasks] = useState<GuestTask[]>([]);
@@ -189,7 +191,7 @@ export default function GuestMyDayPage() {
           </div>
         </div>
       </div>
-      <DragDropContext onDragEnd={handleDragEnd}>
+      <DragDropWrapper onDragEnd={handleDragEnd}>
         <div className="px-4 py-10 space-y-8">
           <GuestTaskGroup
             priority="must"
@@ -231,7 +233,7 @@ export default function GuestMyDayPage() {
             }}
           />
         </div>
-      </DragDropContext>
+      </DragDropWrapper>
 
       <div className="fixed bottom-[5.5rem] z-20 w-full max-w-md left-1/2 -translate-x-1/2 flex justify-end pr-4 pointer-events-none">
         <Fab

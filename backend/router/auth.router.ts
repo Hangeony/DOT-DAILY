@@ -52,9 +52,4 @@ router.post(
   }
 );
 
-// Google 콜백 (임시)
-router.post('/google/callback', (req: Request, res: Response): void => {
-  res.json({ message: 'Google 콜백 구현 예정' });
-});
-
 export default router;

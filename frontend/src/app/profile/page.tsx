@@ -10,7 +10,7 @@ import {
   Clock,
   RefreshCw,
   Archive,
-} from "lucide-react";
+} from "@/components/ui/Icon";
 import { logout } from "@/lib/api/auth";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";

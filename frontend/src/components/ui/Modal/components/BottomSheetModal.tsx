@@ -27,7 +27,7 @@ export default function BottomSheetModal({
     <AnimatePresence>
       {open && (
         <motion.div
-          className="w-full max-w-md mx-auto min-h-screen  shadow-lg absolute inset-0 z-[100] flex items-end justify-center"
+          className="w-full max-w-md mx-auto min-h-screen shadow-lg absolute inset-0 z-[9999] flex items-end justify-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

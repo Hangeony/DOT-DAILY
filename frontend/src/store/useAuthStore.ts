@@ -2,11 +2,9 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export interface User {
-  id: number;
+  id: string;
+  name: string;
   email: string;
-  username?: string;
-  name?: string;
-  image?: string;
 }
 
 interface AuthState {
@@ -14,6 +12,8 @@ interface AuthState {
   isGuest: boolean;
   isAuthenticated: boolean;
   accessToken: string | null;
+  isInitialized: boolean; // 초기화 상태 추가
+
   initialize: () => void;
   login: (user: User, token: string) => void;
   logout: () => void;
@@ -23,66 +23,62 @@ interface AuthState {
 
 const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       isGuest: false,
       isAuthenticated: false,
       accessToken: null,
+      isInitialized: false,
 
       // 초기화 시 토큰이 있으면 인증 상태 복원
       initialize: () => {
+        // 이미 초기화되었다면 스킵
+        if (get().isInitialized) {
+          return;
+        }
+
         if (typeof window !== "undefined") {
           const token = localStorage.getItem("accessToken");
           const authStorage = localStorage.getItem("auth-storage");
-
-          console.log("🔄 인증 상태 초기화 시작:", {
-            token: !!token,
-            authStorage: !!authStorage,
-          });
 
           if (token && authStorage) {
             try {
               const authData = JSON.parse(authStorage);
 
-              // 파싱 성공 시에만 로그 출력
-              if (authData.state) {
-                console.log("📊 auth-storage 파싱 성공:", authData.state);
-              }
-
               if (authData.state?.isAuthenticated && authData.state?.user) {
-                console.log("✅ 인증 상태 복원:", authData.state);
                 set({
                   user: authData.state.user,
                   isAuthenticated: true,
                   isGuest: false,
                   accessToken: token,
+                  isInitialized: true,
                 });
                 return;
               }
 
               if (authData.state?.isGuest) {
-                console.log("🎮 게스트 모드 복원");
                 set({
                   user: null,
                   isAuthenticated: false,
                   isGuest: true,
                   accessToken: null,
+                  isInitialized: true,
                 });
                 return;
               }
-            } catch (error) {
-              console.warn("⚠️ auth-storage 파싱 실패, 기본값 사용:", error);
-              // 파싱 실패 시 기본값으로 초기화
-              set({
-                user: null,
-                isAuthenticated: false,
-                isGuest: false,
-                accessToken: null,
-              });
+            } catch {
+              // 파싱 실패 시 기본값으로 진행
             }
           }
 
-          console.log("🚫 인증 데이터 없음 - 초기 상태 유지");
+          // 기본값으로 초기화
+          set({
+            user: null,
+            isAuthenticated: false,
+            isGuest: false,
+            accessToken: null,
+            isInitialized: true,
+          });
         }
       },
 
@@ -92,6 +88,7 @@ const useAuthStore = create<AuthState>()(
           isAuthenticated: true,
           isGuest: false,
           accessToken: token,
+          isInitialized: true,
         }),
 
       logout: () => {
@@ -103,6 +100,7 @@ const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           isGuest: false,
           accessToken: null,
+          isInitialized: true,
         });
       },
 
@@ -112,6 +110,7 @@ const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           isGuest: true,
           accessToken: null,
+          isInitialized: true,
         }),
 
       clearGuestMode: () =>

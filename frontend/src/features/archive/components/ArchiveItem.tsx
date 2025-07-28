@@ -52,7 +52,10 @@ export default function ArchiveItem({
         </div>
       </div>
       <Menu as="div" className="relative">
-        <Menu.Button className="p-1 rounded-full hover:bg-surface-hover">
+        <Menu.Button
+          className="p-2 rounded-full hover:bg-surface-hover min-w-[44px] min-h-[44px] flex items-center justify-center"
+          aria-label="보관함 아이템 옵션 메뉴"
+        >
           <MoreHorizontal className="w-5 h-5 text-text-weak" />
         </Menu.Button>
         <Menu.Items className="absolute right-0 z-10 mt-2 min-w-[180px] bg-surface-card rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
