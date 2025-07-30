@@ -1,4 +1,3 @@
-// index.ts
-export { Input } from './Input';
-export { SelectInput } from './SelectInput';
-export { DatePicker } from './DatePicker';
+export { Input } from "./Input";
+export { SelectInput } from "./SelectInput";
+export { DatePicker } from "./DatePicker";

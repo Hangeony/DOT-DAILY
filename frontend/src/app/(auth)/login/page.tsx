@@ -4,7 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui";
 import { Input } from "@/components/ui";
 import { httpClient } from "@/lib/api/http";
-import { validateEmail, validatePassword } from "@/utils/validation";
+import { validateEmail, validatePassword } from "@/lib/utils";
 import { Eye, EyeOff } from "@/components/ui/Icon";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,7 +13,7 @@ import { FormEvent, useState, useEffect } from "react";
 import { useToast } from "@/components/ui/Toast/ToastProvider";
 import useAuthStore from "@/store/useAuthStore";
 import { GoogleOAuthProvider, useGoogleLogin } from "@react-oauth/google";
-import axios from "axios";
+import { isAxiosError } from "axios";
 
 interface FormErrors {
   email?: string;
@@ -22,13 +22,6 @@ interface FormErrors {
 
 // 환경변수에서 직접 가져오기
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-
-// 환경에 따른 API URL 설정
-const API_BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? process.env.NEXT_PUBLIC_PRODUCTION_API_URL ||
-      "https://dot-daily.onrender.com/api/v1"
-    : process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3001/api/v1";
 
 function LoginPageContent() {
   const [email, setEmail] = useState("");
@@ -42,7 +35,6 @@ function LoginPageContent() {
 
   // 로그인 페이지 로드 시 게스트 모드 해제
   useEffect(() => {
-    console.log("🔓 로그인 페이지 로드 - 게스트 모드 해제");
     clearGuestMode();
     localStorage.removeItem("auth-storage"); // 게스트 데이터 초기화
   }, [clearGuestMode]);
@@ -70,12 +62,11 @@ function LoginPageContent() {
 
     try {
       setIsLoading(true);
+
       const response = await httpClient.post("/auth/login", {
         email,
         password,
       });
-
-      console.log("로그인 성공:", response.data);
 
       // 백엔드 응답 구조에 따라 토큰과 사용자 정보 추출
       const responseData = response.data.data || response.data;
@@ -92,22 +83,32 @@ function LoginPageContent() {
 
         // localStorage에도 토큰 저장 (이중 안전장치)
         localStorage.setItem("accessToken", accessToken);
-
-        console.log("✅ 인증 상태 업데이트 완료:", {
-          user,
-          token: accessToken,
-        });
         router.push("/");
       } else {
-        console.error(
-          "토큰 또는 사용자 정보를 찾을 수 없습니다:",
-          responseData
-        );
+        // 토큰 또는 사용자 정보 누락
         showToast("로그인 처리 중 오류가 발생했습니다.");
       }
     } catch (error) {
-      console.error("로그인 실패:", error);
-      showToast("로그인에 실패했습니다.");
+      if (isAxiosError(error)) {
+        // 백엔드에서 반환한 오류 메시지가 있으면 사용
+        if (error.response?.data?.errors) {
+          // 필드별 오류가 있는 경우 (비밀번호 틀림 등)
+          const errorMessages = Object.values(error.response.data.errors).join(
+            ", "
+          );
+          showToast(errorMessages);
+        } else if (error.response?.data?.message) {
+          // 일반적인 오류 메시지
+          showToast(error.response.data.message);
+        } else {
+          showToast("로그인에 실패했습니다.");
+        }
+      } else {
+        showToast("로그인에 실패했습니다.");
+      }
+
+      // 로그인 실패 시 비밀번호 필드만 초기화 (이메일은 유지)
+      setPassword("");
     } finally {
       setIsLoading(false);
     }
@@ -117,8 +118,6 @@ function LoginPageContent() {
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
-        console.log("✅ 구글 토큰 응답:", tokenResponse);
-
         // access_token 추출
         const accessToken = tokenResponse.access_token;
 
@@ -126,31 +125,16 @@ function LoginPageContent() {
           throw new Error("Google access token이 없습니다.");
         }
 
-        console.log("🔄 백엔드로 Google 토큰 전송 중...");
-
         // 백엔드로 Google access token 전달
-        const response = await axios.post(
-          `${API_BASE_URL}/auth/google/login`,
-          { accessToken },
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        console.log("✅ 백엔드 응답:", response.data);
+        const response = await httpClient.post("/auth/google/login", {
+          accessToken,
+        });
 
         // 백엔드 응답에서 직접 데이터 추출
         const jwt = response.data.accessToken;
         const user = response.data.user;
 
         if (!jwt || !user) {
-          console.error("❌ 데이터 누락:", {
-            jwt: !!jwt,
-            user: !!user,
-            fullResponse: response.data,
-          });
           throw new Error("백엔드에서 유효한 응답을 받지 못했습니다.");
         }
 
@@ -160,22 +144,11 @@ function LoginPageContent() {
 
         showToast("Google 로그인 성공! 🎉");
         router.push("/");
-      } catch (error) {
-        console.error("❌ Google 로그인 실패:", error);
-
-        if (axios.isAxiosError(error)) {
-          console.error("Axios 오류 상세:", {
-            status: error.response?.status,
-            data: error.response?.data,
-            message: error.message,
-          });
-        }
-
+      } catch {
         showToast("Google 로그인에 실패했습니다.");
       }
     },
-    onError: (error) => {
-      console.error("❌ Google OAuth SDK 오류:", error);
+    onError: () => {
       showToast("Google 로그인 중 오류가 발생했습니다.");
     },
   });
@@ -187,11 +160,11 @@ function LoginPageContent() {
           <Image
             src="/logo-vertical.svg"
             alt="dot_daily logo"
-            width={60}
-            height={60}
+            width={80}
+            height={80}
             priority
+            style={{ width: "80px", height: "80px" }}
           />
-          {/* <h1 className="text-2xl font-bold text-gray-900 tracking-tight">dot<span className="text-blue-400">.</span>daily</h1> */}
         </div>
         <form onSubmit={onLogin} className="flex flex-col gap-6">
           <Input
@@ -203,6 +176,7 @@ function LoginPageContent() {
             error={errors.email}
             state={errors.email ? "error" : "default"}
             required
+            autoComplete="username"
             className="rounded-full shadow-sm"
           />
           <div className="relative">
@@ -215,6 +189,7 @@ function LoginPageContent() {
               error={errors.password}
               state={errors.password ? "error" : "default"}
               required
+              autoComplete="current-password"
               className="rounded-full shadow-sm"
             />
             <button
@@ -281,20 +256,11 @@ function LoginPageContent() {
 export default function LoginPage() {
   // 환경변수에서 Google Client ID 확인
   if (!GOOGLE_CLIENT_ID) {
-    console.warn(
-      "⚠️ NEXT_PUBLIC_GOOGLE_CLIENT_ID 환경변수가 설정되지 않았습니다."
-    );
-    console.warn("Google 로그인이 비활성화됩니다.");
     return <LoginPageContent />;
   }
 
   return (
-    <GoogleOAuthProvider
-      clientId={GOOGLE_CLIENT_ID}
-      onScriptLoadError={() => {
-        console.warn("Google OAuth 스크립트 로드 실패");
-      }}
-    >
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <LoginPageContent />
     </GoogleOAuthProvider>
   );

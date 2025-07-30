@@ -1,5 +1,5 @@
 import React, { ReactNode, useEffect } from "react";
-import { modalVariants } from "@/lib/styles/modalVariants";
+import { modalVariants } from "@/lib/styles";
 import { AnimatePresence, motion } from "framer-motion";
 
 interface BottomSheetModalProps {

@@ -47,6 +47,23 @@ a {
   will-change: auto;
 }
 
+/* Forced Reflow 방지를 위한 최적화 */
+.transform-gpu {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000;
+}
+
+/* 레이아웃 변경 최소화 */
+.layout-stable {
+  contain: layout style;
+}
+
+/* 애니메이션 최적화 */
+.animate-optimized {
+  will-change: transform, opacity;
+}
+
 /* Layout shift 방지 */
 img,
 svg,

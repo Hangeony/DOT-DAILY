@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useRetrospectStore } from '@/store/useRestrospectStore';
-import { useState } from 'react';
-import Image from 'next/image';
+import { useRetrospectStore } from "@/store/useRestrospectStore";
+import { useState } from "react";
+import Image from "next/image";
 
 interface DateNavigationModalProps {
   onClose: () => void;
 }
 
 export default function DateNavigationModal({
-  onClose
+  onClose,
 }: DateNavigationModalProps) {
   const { selectedYearMonth, setSelectedYearMonth } = useRetrospectStore();
   const [selectedYear, setSelectedYear] = useState(selectedYearMonth.year);
@@ -17,8 +17,8 @@ export default function DateNavigationModal({
 
   const months = Array.from({ length: 12 }, (_, index) => index + 1);
 
-  const onPrevYear = () => setSelectedYear(prev => prev - 1);
-  const onNextYear = () => setSelectedYear(prev => prev + 1);
+  const onPrevYear = () => setSelectedYear((prev: number) => prev - 1);
+  const onNextYear = () => setSelectedYear((prev: number) => prev + 1);
 
   const onDateSelect = (month: number) => {
     setSelectedMonth(month);
@@ -34,7 +34,13 @@ export default function DateNavigationModal({
           onClick={onClose}
           className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
         >
-          <Image src="/close.svg" alt="닫기" width={24} height={24} />
+          <Image
+            src="/close.svg"
+            alt="닫기"
+            width={24}
+            height={24}
+            style={{ width: "24px", height: "24px" }}
+          />
         </button>
       </div>
 
@@ -43,7 +49,13 @@ export default function DateNavigationModal({
           onClick={onPrevYear}
           className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100"
         >
-          <Image src="/left.svg" alt="왼쪽" width={24} height={24} />
+          <Image
+            src="/left.svg"
+            alt="왼쪽"
+            width={24}
+            height={24}
+            style={{ width: "24px", height: "24px" }}
+          />
         </button>
 
         <div className="text-xl font-bold">{selectedYear}년</div>
@@ -52,7 +64,13 @@ export default function DateNavigationModal({
           onClick={onNextYear}
           className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100"
         >
-          <Image src="/right.svg" alt="오른쪽" width={24} height={24} />
+          <Image
+            src="/right.svg"
+            alt="오른쪽"
+            width={24}
+            height={24}
+            style={{ width: "24px", height: "24px" }}
+          />
         </button>
       </div>
 
@@ -65,10 +83,12 @@ export default function DateNavigationModal({
               w-full h-12
               rounded-full 
               font-medium
-              ${selectedYear === selectedYearMonth.year && selectedMonth === month
-                  ? 'bg-brand-primary text-white'
-                  : 'text-gray-900 hover:bg-gray-100'
-                }
+              ${
+                selectedYear === selectedYearMonth.year &&
+                selectedMonth === month
+                  ? "bg-brand-primary text-white"
+                  : "text-gray-900 hover:bg-gray-100"
+              }
             `}
             >
               {month}월
@@ -78,4 +98,4 @@ export default function DateNavigationModal({
       </div>
     </div>
   );
-} 
+}

@@ -1,30 +1,22 @@
 "use client";
 
-import useAuthStore from "../store/useAuthStore";
-import { useEffect } from "react";
-import GuestModePage from "../components/auth/GuestModePage";
-import MyDayPage from "../components/pages/MyDayPage";
+import { MyDayPageSkeleton } from "@/components/ui/Skeleton/Skeleton";
+import GuestModePage from "@/components/auth/GuestModePage";
+import MyDayPage from "@/features/myday/MyDayPage";
+import GuestMyDayPage from "@/features/myday/GuestMyDayPage";
+import useAuthStore from "@/store/useAuthStore";
 
 export default function HomePage() {
-  const { isAuthenticated, isGuest, initialize, isInitialized } =
-    useAuthStore();
-  // 컴포넌트 마운트 시 인증 상태 초기화 (한 번만)
-  useEffect(() => {
-    if (!isInitialized) {
-      initialize();
-    }
-  }, [initialize, isInitialized]);
+  const { isGuest, isInitialized, isAuthenticated } = useAuthStore();
 
-  // 초기화되지 않은 경우에만 로딩 표시 (더 빠른 렌더링)
-  if (!isInitialized) {
-    return <div>Loading...</div>;
+  // 서버 사이드 렌더링 중에는 스켈레톤만 표시
+  if (typeof window === "undefined") {
+    return <MyDayPageSkeleton />;
   }
 
-  // 인증된 사용자 또는 게스트 모드인 경우 MyDayPage
-  if (isAuthenticated || isGuest) {
-    return <MyDayPage />;
-  }
+  if (!isInitialized) return <MyDayPageSkeleton />;
+  if (isGuest) return <GuestMyDayPage />;
+  if (!isAuthenticated) return <GuestModePage />;
 
-  // 그 외의 경우 게스트 모드 선택 페이지
-  return <GuestModePage />;
+  return <MyDayPage />;
 }

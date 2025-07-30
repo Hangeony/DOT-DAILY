@@ -6,17 +6,17 @@ export interface YearMonth {
   month: number;
 }
 
-export interface EmotionMemo {
-  id: number;
-  date: string;
-  emotion: Emotion;
+export interface DailyEmotionMemo {
+  date: Date;
+  emotion: Emotion["id"];
   memo: string;
   compareNote?: string;
 }
 
-export interface RetrospectState {
-  emotionMemoList: EmotionMemo[];
-  selectedDate: Date;
-  addEmotionMemo: (memo: Omit<EmotionMemo, "id">) => void;
-  setSelectedDate: (date: Date) => void;
+export interface TitleFormatDate {
+  date: {
+    year: number;
+    month: number;
+    day: number;
+  };
 }

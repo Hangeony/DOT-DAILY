@@ -10,6 +10,7 @@ import {
   formatDisplayDate,
 } from "../../../utils/retrospectUtils";
 import { useState, useEffect, useMemo } from "react";
+import Image from "next/image";
 
 import { Emotion } from "@/constants/emotion";
 
@@ -84,7 +85,13 @@ export default function RetrospectModal({
           aria-label="뒤로가기"
           className="text-gray-600 hover:text-gray-800"
         >
-          <img src="/back.svg" alt="back" className="w-6 h-6" />
+          <Image
+            src="/back.svg"
+            alt="back"
+            width={24}
+            height={24}
+            className="w-6 h-6"
+          />
         </button>
         <h2 className="text-lg font-semibold">
           {isEditMode ? "회고 수정" : "오늘 회고"}

@@ -10,7 +10,6 @@ export const Skeleton = ({ className }: SkeletonProps) => {
   );
 };
 
-// 나의 하루 페이지용 스켈레톤 - 더 가벼운 버전
 export const MyDayPageSkeleton = () => {
   return (
     <div className="w-full h-full max-w-md mx-auto min-h-screen bg-surface-base shadow-lg relative overflow-hidden flex flex-col">
@@ -23,7 +22,7 @@ export const MyDayPageSkeleton = () => {
         </div>
       </div>
 
-      {/* 할일 그룹들 스켈레톤 - 실제와 비슷하게 */}
+      {/* 할일 그룹들 스켈레톤 */}
       <div className="flex-1 overflow-y-auto px-4 py-10 space-y-8 pb-32">
         {/* 오늘 무조건 그룹 */}
         <div className="space-y-3">
@@ -32,7 +31,7 @@ export const MyDayPageSkeleton = () => {
             <Skeleton className="h-5 w-20" />
           </div>
           <div className="space-y-3">
-            {/* 할 일 아이템들 - 실제 모양과 비슷하게 */}
+            {/* 할 일 아이템들 */}
             <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
               <div className="flex items-center gap-3">
                 <div className="w-5 h-5 border-2 border-gray-300 rounded-full"></div>
@@ -125,7 +124,7 @@ export const MyDayPageSkeleton = () => {
   );
 };
 
-// 게스트 모드 페이지용 스켈레톤 - 더 가벼운 버전
+// 게스트 모드 페이지용 스켈레톤
 export const GuestModePageSkeleton = () => {
   return (
     <div className="w-full h-full max-w-md mx-auto min-h-screen bg-surface-base shadow-lg relative overflow-hidden flex flex-col items-center justify-center px-6">

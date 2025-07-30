@@ -2,28 +2,24 @@
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import MobileLayout from "@/components/layout/MobileLayout";
-import { DateHeader, TaskListSkeleton } from "@/features/myday/components";
-import GuestTaskFormModal from "@/features/myday/components/GuestTaskFormModal";
+import {
+  DateHeader,
+  TaskListSkeleton,
+  TaskFormModal,
+} from "@/features/myday/components";
 import { Plus } from "@/components/ui/Icon";
 import Fab from "@/components/ui/Fab/Fab";
 import { useDateStore } from "@/store/useDateStore";
 import { GuestTask, getGuestTasks, saveGuestTasks } from "@/lib/api/guestTasks";
-import { TaskPriority } from "@/lib/api/tasks";
 import FullScreenModal from "@/components/ui/Modal/components/FullScreenModal";
 import { useTaskCompletion } from "@/hooks/useTaskCompletion";
-import dynamic from "next/dynamic";
+
 import { DropResult } from "@hello-pangea/dnd";
-import DragDropWrapper, {
-  GuestTaskGroup,
-} from "@/components/ui/DragDrop/DragDropWrapper";
+import DragDropWrapper from "@/components/ui/DragDrop/DragDropWrapper";
+import { GuestTaskGroup } from "@/features/myday/components";
 import useAuthStore from "../../store/useAuthStore";
 import { Button } from "@/components/ui/Button/Button";
-
-// 클라이언트 사이드에서만 로드
-const CelebrationEffect = dynamic(
-  () => import("@/components/ui/CelebrationEffect/CelebrationEffect"),
-  { ssr: false }
-);
+import CelebrationEffect from "@/components/ui/CelebrationEffect/CelebrationEffect";
 
 export default function GuestMyDayPage() {
   const { selectedDate } = useDateStore();
@@ -129,15 +125,15 @@ export default function GuestMyDayPage() {
       if (destination.droppableId === "must") {
         destTasks = mustTasks;
         setDestTasks = setMustTasks;
-        newPriority = "must" as TaskPriority;
+        newPriority = "must" as "must" | "should" | "remind";
       } else if (destination.droppableId === "should") {
         destTasks = shouldTasks;
         setDestTasks = setShouldTasks;
-        newPriority = "should" as TaskPriority;
+        newPriority = "should" as "must" | "should" | "remind";
       } else {
         destTasks = remindTasks;
         setDestTasks = setRemindTasks;
-        newPriority = "remind" as TaskPriority;
+        newPriority = "remind" as "must" | "should" | "remind";
       }
       const sourceArr = Array.from(sourceTasks);
       const destArr = Array.from(destTasks);
@@ -166,8 +162,20 @@ export default function GuestMyDayPage() {
   if (isLoading) {
     return (
       <MobileLayout headerTitle="나의 하루 (게스트)" showFab={false}>
-        <div className="px-4 py-6">
+        <div className="px-4 py-6 bg-gradient-to-b from-white to-gray-50">
           <DateHeader />
+          <div className="px-4 py-3 bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50 border-b border-amber-200 shadow-sm mb-4">
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col">
+                <p className="text-sm font-semibold text-amber-800">
+                  게스트 모드
+                </p>
+                <p className="text-xs text-amber-600">
+                  데이터가 저장되지 않습니다
+                </p>
+              </div>
+            </div>
+          </div>
           <TaskListSkeleton />
         </div>
       </MobileLayout>
@@ -178,21 +186,31 @@ export default function GuestMyDayPage() {
     <MobileLayout headerTitle="나의 하루 (게스트)">
       <div className="sticky top-0 z-10 bg-surface-base">
         <DateHeader />
-        <div className="px-4 py-2 bg-yellow-50 border-b border-yellow-200">
+        <div className="px-4 py-3 bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50 border-b border-amber-200 shadow-sm">
           <div className="flex items-center justify-between">
-            <p className="text-xs text-yellow-800">
-              게스트 모드 - 데이터가 저장되지 않습니다
-            </p>
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col">
+                <p className="text-sm font-semibold text-amber-800">
+                  게스트 모드
+                </p>
+                <p className="text-xs text-amber-600">
+                  데이터가 저장되지 않습니다
+                </p>
+              </div>
+            </div>
             <Button
-              label="로그인"
+              label="로그인하기"
               onClick={handleLogout}
-              className="text-xs px-2 py-1 bg-blue-500 text-white rounded"
+              size="sm"
+              variant="primary"
+              rounded="full"
+              className="px-4 py-2 bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 text-white font-medium shadow-lg"
             />
           </div>
         </div>
       </div>
       <DragDropWrapper onDragEnd={handleDragEnd}>
-        <div className="px-4 py-10 space-y-8">
+        <div className="px-4 py-16 space-y-6 bg-gradient-to-b from-white to-gray-50 min-h-screen">
           <GuestTaskGroup
             priority="must"
             title="오늘 무조건"
@@ -238,7 +256,7 @@ export default function GuestMyDayPage() {
       <div className="fixed bottom-[5.5rem] z-20 w-full max-w-md left-1/2 -translate-x-1/2 flex justify-end pr-4 pointer-events-none">
         <Fab
           aria-label="새로운 할 일 추가"
-          className="pointer-events-auto"
+          className="pointer-events-auto shadow-2xl"
           onClick={handleFabClick}
         >
           <Plus className="w-6 h-6" />
@@ -246,12 +264,13 @@ export default function GuestMyDayPage() {
       </div>
 
       <FullScreenModal open={open} onClose={handleClose}>
-        <GuestTaskFormModal
+        <TaskFormModal
           onClose={handleClose}
           defaultDate={selectedDate.toISOString().split("T")[0]}
           task={editTask || undefined}
           defaultPriority={defaultPriority}
-          onUpdate={() => {
+          isGuest={true}
+          onSuccess={() => {
             const storedTasks = getGuestTasks();
             setGuestTasks(storedTasks);
           }}

@@ -3,7 +3,7 @@ import { Listbox } from "@headlessui/react";
 import { Check, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 import clsx from "clsx";
-import { selectInputVariants } from "@/lib/styles/selectInputVariants";
+import { selectInputVariants } from "@/lib/styles";
 import type { VariantProps } from "class-variance-authority";
 
 interface Option {

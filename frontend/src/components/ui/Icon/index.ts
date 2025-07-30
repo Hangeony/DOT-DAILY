@@ -1,42 +1,56 @@
-// 아이콘 중앙 집중화 - 트리 쉐이킹 최적화
-export {
-  // 기본 UI 아이콘
+// Tree Shaking 최적화 - 깔끔한 import
+import {
   Plus,
   Check,
   Eye,
   EyeOff,
   Lock,
-
-  // 액션 아이콘
   MoreHorizontal,
   Pencil,
   Trash2,
   RefreshCw,
-
-  // 날짜/시간 아이콘
   CalendarIcon,
   CalendarClock,
-
-  // 네비게이션 아이콘
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-
-  // 통계 아이콘
   TrendingUp,
   CheckCircle,
   Clock,
   Archive,
   LogOut,
-
-  // 사용자 아이콘
   User,
   Users,
-
-  // 추가 네비게이션 아이콘
   Home,
   BookOpen,
 } from "lucide-react";
+
+// 개별 export로 Tree Shaking 최적화
+export {
+  Plus,
+  Check,
+  Eye,
+  EyeOff,
+  Lock,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  RefreshCw,
+  CalendarIcon,
+  CalendarClock,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  TrendingUp,
+  CheckCircle,
+  Clock,
+  Archive,
+  LogOut,
+  User,
+  Users,
+  Home,
+  BookOpen,
+};
 
 // 아이콘 타입 정의
 export type IconComponent = React.ComponentType<{

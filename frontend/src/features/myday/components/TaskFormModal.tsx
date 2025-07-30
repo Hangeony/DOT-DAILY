@@ -7,10 +7,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button/Button";
 import { motion } from "framer-motion";
 import RadioButton from "@/components/ui/Radio/RadioButton";
-import { createTask, updateTask, Task } from "@/lib/api/tasks";
+import { createTask, updateTask } from "@/lib/api/tasks";
 import { useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/components/ui/Toast/ToastProvider";
+import Image from "next/image";
 
 // 공통 Task 인터페이스 (Task와 GuestTask를 모두 포함)
 interface CommonTask {
@@ -86,8 +87,7 @@ export default function TaskFormModal({
     priority: "must" | "should" | "remind";
     date: string;
   }) => {
-    const dateStr = taskData.date;
-    const stored = localStorage.getItem(`guest-tasks-${dateStr}`);
+    const stored = localStorage.getItem("guest_tasks");
     const existingTasks = stored ? JSON.parse(stored) : [];
 
     const newTask = {
@@ -113,10 +113,7 @@ export default function TaskFormModal({
       updatedTasks = [...existingTasks, newTask];
     }
 
-    localStorage.setItem(
-      `guest-tasks-${dateStr}`,
-      JSON.stringify(updatedTasks)
-    );
+    localStorage.setItem("guest_tasks", JSON.stringify(updatedTasks));
     return true;
   };
 
@@ -135,8 +132,6 @@ export default function TaskFormModal({
         date: format(date, "yyyy-MM-dd"),
       };
 
-      console.log("📝 할 일 저장 시도:", taskData);
-
       if (isGuest) {
         // 게스트 모드: 로컬 스토리지에 저장
         if (saveGuestTask(taskData)) {
@@ -145,7 +140,7 @@ export default function TaskFormModal({
               ? "할 일이 수정되었습니다! ✏️"
               : "새로운 할 일이 등록되었습니다! ✅"
           );
-          // 성공 콜백 호출로 상태 업데이트 (페이지 새로고침 대신)
+          // 성공 콜백 호출로 상태 업데이트
           if (onSuccess) {
             onSuccess();
           }
@@ -157,28 +152,23 @@ export default function TaskFormModal({
       }
 
       // 인증된 사용자: 서버 API 사용
-      let newOrUpdatedTask: Task;
       if (task) {
         // 수정 모드
-        console.log("✏️ 수정 모드:", task.id);
-        newOrUpdatedTask = await updateTask(task.id as number, taskData);
+        await updateTask(task.id as number, taskData);
         showToast("할 일이 수정되었습니다! ✏️");
       } else {
         // 등록 모드
-        console.log("➕ 등록 모드");
-        newOrUpdatedTask = await createTask(taskData);
+        await createTask(taskData);
         showToast("새로운 할 일이 등록되었습니다! ✅");
       }
-
-      console.log("✅ 할 일 저장 성공:", newOrUpdatedTask);
 
       // React Query 캐시 무효화 (특정 날짜의 tasks 쿼리만 새로고침)
       const dateKey = format(date, "yyyy-MM-dd");
       queryClient.invalidateQueries({ queryKey: ["tasks", dateKey] });
 
       onClose();
-    } catch (error) {
-      console.error("❌ 할 일 저장 실패:", error);
+    } catch {
+      // 할 일 저장 실패
       showToast("할 일 저장에 실패했습니다 😭");
     } finally {
       setIsLoading(false);
@@ -200,10 +190,17 @@ export default function TaskFormModal({
           onClick={onClose}
           className="text-gray-600 hover:text-gray-800"
         >
-          <img src="/back.svg" alt="뒤로 가기" width={24} height={24} />
+          <Image
+            src="/back.svg"
+            alt="뒤로 가기"
+            width={24}
+            height={24}
+            style={{ width: "24px", height: "24px" }}
+          />
         </button>
         <h2 className="text-lg font-semibold">
           {task ? "할 일 수정" : "할 일 등록"}
+          {isGuest && " (게스트)"}
         </h2>
         <div className="w-6 h-6" /> {/* 우측 여백 */}
       </div>

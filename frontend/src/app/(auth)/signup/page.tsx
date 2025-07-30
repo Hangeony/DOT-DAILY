@@ -9,7 +9,7 @@ import {
   validateEmail,
   validateName,
   validatePassword,
-} from "@/utils/validation";
+} from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -44,7 +44,6 @@ function SignupPage() {
 
   // 회원가입 페이지 로드 시 게스트 모드 해제
   useEffect(() => {
-    console.log("🔓 회원가입 페이지 로드 - 게스트 모드 해제");
     clearGuestMode();
     // 로컬 스토리지에서도 게스트 모드 관련 데이터 정리
     localStorage.removeItem("auth-storage");
@@ -128,9 +127,10 @@ function SignupPage() {
           <Image
             src="/logo-vertical.svg"
             alt="dot_daily logo"
-            width={60}
-            height={60}
+            width={80}
+            height={80}
             priority
+            style={{ width: "80px", height: "80px" }}
           />
         </div>
         <h2 className="text-xl font-bold text-center mb-2">회원가입</h2>
@@ -143,6 +143,7 @@ function SignupPage() {
             onChange={onInputChange("name")}
             error={errors.name}
             state={errors.name ? "error" : "default"}
+            autoComplete="name"
             className="rounded-full shadow-sm"
           />
           <Input
@@ -153,6 +154,7 @@ function SignupPage() {
             onChange={onInputChange("email")}
             error={errors.email}
             state={errors.email ? "error" : "default"}
+            autoComplete="email"
             className="rounded-full shadow-sm"
           />
           <Input
@@ -163,6 +165,7 @@ function SignupPage() {
             onChange={onInputChange("password")}
             error={errors.password}
             state={errors.password ? "error" : "default"}
+            autoComplete="new-password"
             className="rounded-full shadow-sm"
           />
           <Input
@@ -173,6 +176,7 @@ function SignupPage() {
             onChange={onInputChange("confirmPassword")}
             error={errors.confirmPassword}
             state={errors.confirmPassword ? "error" : "default"}
+            autoComplete="new-password"
             className="rounded-full shadow-sm"
           />
           <Button

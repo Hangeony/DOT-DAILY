@@ -1,4 +1,4 @@
-import { radioVariants } from '@/lib/styles/radioVariants';
+import { radioVariants } from '@/lib/styles';
 import type { VariantProps } from 'class-variance-authority';
 import clsx from 'clsx';
 import { ReactNode } from 'react';

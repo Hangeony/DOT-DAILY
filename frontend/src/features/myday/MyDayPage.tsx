@@ -8,24 +8,21 @@ import {
   TaskFormModal,
 } from "@/features/myday/components";
 import { useDateStore } from "@/store/useDateStore";
-import { getTasksByDate, Task, updateTask } from "@/lib/api/tasks";
+import { getTasksByDate, updateTask } from "@/lib/api/tasks";
 import FullScreenModal from "@/components/ui/Modal/components/FullScreenModal";
 import { useTaskCompletion } from "@/hooks/useTaskCompletion";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { DropResult } from "@hello-pangea/dnd";
 import useAuthStore from "@/store/useAuthStore";
+import { CommonTask } from "@/types";
 
-// DragDrop을 완전히 동적 로딩으로 분리
+// DragDrop을 완전히 동적 로딩으로 분리 (성능 최적화)
 const DragDropWrapper = dynamic(
   () => import("@/components/ui/DragDrop/DragDropWrapper"),
   {
-    loading: () => (
-      <div className="flex justify-center items-center h-32">
-        <div className="w-6 h-6 border-2 border-brand-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    ),
     ssr: false,
+    loading: () => <div className="min-h-screen" />, // 최소한의 DOM 노드 제공
   }
 );
 
@@ -35,20 +32,23 @@ const TaskGroup = dynamic(
       default: mod.TaskGroup,
     })),
   {
-    loading: () => (
-      <div className="h-20 bg-gray-100 animate-pulse rounded-lg"></div>
-    ),
     ssr: false,
+    loading: () => (
+      <div className="h-32 bg-gray-100 rounded-lg animate-pulse" />
+    ), // 스켈레톤 제공
   }
 );
 
-// 클라이언트 사이드에서만 로드
+// 클라이언트 사이드에서만 로드 (성능 최적화)
 const CelebrationEffect = dynamic(
   () => import("@/components/ui/CelebrationEffect/CelebrationEffect"),
-  { ssr: false }
+  {
+    ssr: false,
+    loading: () => <div />, // 빈 div로 최소한의 DOM 노드 제공
+  }
 );
 
-// 게스트 모드용 로컬 스토리지 타입
+// 게스트 모드용 로컬 스토리지 커스텀 훅
 interface GuestTask {
   id: string;
   title: string;
@@ -59,22 +59,6 @@ interface GuestTask {
   updatedAt: string;
 }
 
-// 공통 Task 인터페이스 (Task와 GuestTask를 모두 포함)
-interface CommonTask {
-  id: string | number;
-  title: string;
-  priority: "must" | "should" | "remind";
-  date: string;
-  createdAt: string;
-  updatedAt?: string;
-  // Task의 경우
-  status?: "pending" | "success" | "retry" | "archive";
-  retryCount?: number;
-  // GuestTask의 경우
-  completed?: boolean;
-}
-
-// 게스트 모드용 로컬 스토리지 커스텀 훅
 function useGuestTasks(date: Date) {
   const [guestTasks, setGuestTasks] = useState<GuestTask[]>([]);
 
@@ -99,137 +83,99 @@ function useGuestTasks(date: Date) {
       if (typeof window === "undefined") return;
 
       const dateStr = date.toISOString().split("T")[0];
-      setGuestTasks(newTasks);
       localStorage.setItem(`guest-tasks-${dateStr}`, JSON.stringify(newTasks));
+      setGuestTasks(newTasks);
     },
     [date]
   );
 
-  return { guestTasks, setGuestTasks: updateGuestTasks, isLoading: false };
+  return { guestTasks, updateGuestTasks };
 }
 
 export default function MyDayPage() {
   const { selectedDate } = useDateStore();
-  const { isGuest, isAuthenticated } = useAuthStore();
+  const { isGuest, isInitialized } = useAuthStore();
   const queryClient = useQueryClient();
 
-  const [editTask, setEditTask] = useState<CommonTask | null>(null);
+  // 현재 날짜 데이터 로드
+  const {
+    data: tasks = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["tasks", selectedDate.toISOString().split("T")[0]],
+    queryFn: () => getTasksByDate(selectedDate),
+    enabled: isInitialized && !isGuest && typeof window !== "undefined",
+    staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
+  });
+
+  // 데이터 프리페칭: 다음 날짜 데이터 미리 로드
+  const nextDate = useMemo(() => {
+    const next = new Date(selectedDate);
+    next.setDate(next.getDate() + 1);
+    return next;
+  }, [selectedDate]);
+
+  const prevDate = useMemo(() => {
+    const prev = new Date(selectedDate);
+    prev.setDate(prev.getDate() - 1);
+    return prev;
+  }, [selectedDate]);
+
+  // 다음/이전 날짜 데이터 프리페칭
+  useQuery({
+    queryKey: ["tasks", nextDate.toISOString().split("T")[0]],
+    queryFn: () => getTasksByDate(nextDate),
+    enabled: isInitialized && !isGuest && typeof window !== "undefined",
+    staleTime: 1000 * 60 * 10, // 10분간 fresh 상태 유지 (프리페칭이므로 더 길게)
+  });
+
+  useQuery({
+    queryKey: ["tasks", prevDate.toISOString().split("T")[0]],
+    queryFn: () => getTasksByDate(prevDate),
+    enabled: isInitialized && !isGuest && typeof window !== "undefined",
+    staleTime: 1000 * 60 * 10, // 10분간 fresh 상태 유지
+  });
+
+  // 게스트 모드용 상태
+  const { guestTasks, updateGuestTasks } = useGuestTasks(selectedDate);
+
+  // 모달 상태
   const [open, setOpen] = useState(false);
+  const [editTask, setEditTask] = useState<CommonTask | null>(null);
   const [defaultPriority, setDefaultPriority] = useState<
     "must" | "should" | "remind"
   >("must");
 
-  // 날짜별 쿼리 키 생성 (메모이제이션 최적화)
-  const dateKey = selectedDate.toISOString().split("T")[0];
-  const queryKey = useMemo(() => ["tasks", dateKey], [dateKey]);
-
-  // 게스트 모드일 때 로컬 스토리지 사용
-  const {
-    guestTasks,
-    setGuestTasks,
-    isLoading: guestLoading,
-  } = useGuestTasks(selectedDate);
-
-  // 게스트 모드에서 할 일 저장/수정 성공 시 호출할 콜백
-  const handleGuestTaskSuccess = useCallback(() => {
-    if (isGuest) {
-      const dateStr = selectedDate.toISOString().split("T")[0];
-      const stored = localStorage.getItem(`guest-tasks-${dateStr}`);
-      if (stored) {
-        try {
-          const updatedTasks = JSON.parse(stored);
-          setGuestTasks(updatedTasks);
-        } catch {
-          setGuestTasks([]);
-        }
-      }
-    }
-  }, [isGuest, selectedDate, setGuestTasks]);
-
-  // 인증된 사용자일 때 서버 API 사용 (극도로 최적화된 설정)
-  const {
-    data: tasks,
-    isLoading: serverLoading,
-    isError,
-    error,
-  } = useQuery({
-    queryKey,
-    queryFn: () => getTasksByDate(selectedDate),
-    // 글로벌 설정 사용 (더 적극적인 캐시)
-    enabled: isAuthenticated && !isGuest,
-  });
-
-  // Task를 CommonTask로 변환하는 함수 (메모이제이션)
-  const convertTaskToCommon = useCallback(
-    (task: Task): CommonTask => ({
-      id: task.id,
-      title: task.title,
-      priority: task.priority,
-      date: task.date,
-      createdAt: task.createdAt,
-      updatedAt: task.updatedAt,
-      status: task.status,
-      retryCount: task.retryCount,
-    }),
-    []
-  );
-
-  // GuestTask를 CommonTask로 변환하는 함수 (메모이제이션)
-  const convertGuestTaskToCommon = useCallback(
-    (task: GuestTask): CommonTask => ({
-      id: task.id,
-      title: task.title,
-      priority: task.priority,
-      date: task.date,
-      createdAt: task.createdAt,
-      updatedAt: task.updatedAt,
-      completed: task.completed,
-    }),
-    []
-  );
-
-  // 현재 사용할 데이터 결정 (메모이제이션)
-  const currentTasks: CommonTask[] = useMemo(() => {
-    if (isGuest) {
-      return guestTasks.map(convertGuestTaskToCommon);
-    } else if (isAuthenticated) {
-      return (tasks || []).map(convertTaskToCommon);
-    } else {
-      return [];
-    }
-  }, [
-    isGuest,
-    isAuthenticated,
-    guestTasks,
-    tasks,
-    convertGuestTaskToCommon,
-    convertTaskToCommon,
-  ]);
-
-  const isLoading = isGuest
-    ? guestLoading
-    : isAuthenticated
-    ? serverLoading
-    : false;
-
-  // DnD를 위한 그룹별 상태 관리
-  const [mustTasks, setMustTasks] = useState<CommonTask[]>([]);
-  const [shouldTasks, setShouldTasks] = useState<CommonTask[]>([]);
-  const [remindTasks, setRemindTasks] = useState<CommonTask[]>([]);
-
-  // tasks가 변경될 때마다 그룹별 상태 동기화
-  useEffect(() => {
-    if (Array.isArray(currentTasks)) {
-      setMustTasks(currentTasks.filter((t) => t.priority === "must"));
-      setShouldTasks(currentTasks.filter((t) => t.priority === "should"));
-      setRemindTasks(currentTasks.filter((t) => t.priority === "remind"));
-    }
-  }, [currentTasks]);
-
   // 완료 축하 효과 훅
   const { showCelebration, hideCelebration } = useTaskCompletion({
-    tasks: currentTasks || [],
+    tasks: isGuest ? guestTasks : tasks,
   });
+
+  // 게스트 모드 성공 콜백
+  const handleGuestTaskSuccess = useCallback(() => {
+    const dateStr = selectedDate.toISOString().split("T")[0];
+    const stored = localStorage.getItem(`guest-tasks-${dateStr}`);
+    if (stored) {
+      try {
+        const updatedTasks = JSON.parse(stored);
+        updateGuestTasks(updatedTasks);
+      } catch {
+        // 게스트 태스크 업데이트 실패
+      }
+    }
+  }, [selectedDate, updateGuestTasks]);
+
+  // 태스크 그룹별 분류
+  const { mustTasks, shouldTasks, remindTasks } = useMemo(() => {
+    const currentTasks = isGuest ? guestTasks : tasks;
+    return {
+      mustTasks: currentTasks.filter((t) => t.priority === "must"),
+      shouldTasks: currentTasks.filter((t) => t.priority === "should"),
+      remindTasks: currentTasks.filter((t) => t.priority === "remind"),
+    };
+  }, [isGuest, guestTasks, tasks]);
 
   const handleClose = useCallback(() => {
     setOpen(false);
@@ -262,70 +208,68 @@ export default function MyDayPage() {
         const reordered = Array.from(mustTasks);
         const [removed] = reordered.splice(source.index, 1);
         reordered.splice(destination.index, 0, removed);
-        setMustTasks(reordered);
+        // 여기서 순서 업데이트 로직 추가 가능
       } else if (source.droppableId === "should") {
         const reordered = Array.from(shouldTasks);
         const [removed] = reordered.splice(source.index, 1);
         reordered.splice(destination.index, 0, removed);
-        setShouldTasks(reordered);
       } else if (source.droppableId === "remind") {
         const reordered = Array.from(remindTasks);
         const [removed] = reordered.splice(source.index, 1);
         reordered.splice(destination.index, 0, removed);
-        setRemindTasks(reordered);
       }
     } else {
       // 그룹 간 이동
-      let sourceTasks, setSourceTasks, destTasks, setDestTasks, newPriority;
+      let sourceArr, destArr, newPriority;
       if (source.droppableId === "must") {
-        sourceTasks = mustTasks;
-        setSourceTasks = setMustTasks;
+        sourceArr = Array.from(mustTasks);
       } else if (source.droppableId === "should") {
-        sourceTasks = shouldTasks;
-        setSourceTasks = setShouldTasks;
+        sourceArr = Array.from(shouldTasks);
       } else {
-        sourceTasks = remindTasks;
-        setSourceTasks = setRemindTasks;
+        sourceArr = Array.from(remindTasks);
       }
+
       if (destination.droppableId === "must") {
-        destTasks = mustTasks;
-        setDestTasks = setMustTasks;
-        newPriority = "must" as "must" | "should" | "remind";
+        destArr = Array.from(mustTasks);
+        newPriority = "must";
       } else if (destination.droppableId === "should") {
-        destTasks = shouldTasks;
-        setDestTasks = setShouldTasks;
-        newPriority = "should" as "must" | "should" | "remind";
+        destArr = Array.from(shouldTasks);
+        newPriority = "should";
       } else {
-        destTasks = remindTasks;
-        setDestTasks = setRemindTasks;
-        newPriority = "remind" as "must" | "should" | "remind";
+        destArr = Array.from(remindTasks);
+        newPriority = "remind";
       }
-      const sourceArr = Array.from(sourceTasks);
-      const destArr = Array.from(destTasks);
+
       const [removed] = sourceArr.splice(source.index, 1);
-      // priority 필드도 변경
-      const updated = { ...removed, priority: newPriority };
+      const updated = {
+        ...removed,
+        priority: newPriority as "must" | "should" | "remind",
+      };
       destArr.splice(destination.index, 0, updated);
-      setSourceTasks(sourceArr);
-      setDestTasks(destArr);
 
       // 게스트 모드일 때는 로컬 스토리지 업데이트
       if (isGuest) {
         const allTasks = [...sourceArr, ...destArr];
-        const guestTasksToSave = allTasks.map((task) => ({
-          id: task.id as string,
-          title: task.title,
-          priority: task.priority,
-          completed: task.completed || false,
-          date: task.date,
-          createdAt: task.createdAt,
-          updatedAt: task.updatedAt || new Date().toISOString(),
-        }));
-        setGuestTasks(guestTasksToSave);
+        const guestTasksToSave = allTasks.map((task) => {
+          // 타입 가드로 안전하게 처리
+          const isGuestTask = "completed" in task;
+          return {
+            id: task.id as string,
+            title: task.title,
+            priority: task.priority as "must" | "should" | "remind",
+            completed: isGuestTask ? task.completed : false,
+            date: task.date,
+            createdAt: task.createdAt,
+            updatedAt: task.updatedAt || new Date().toISOString(),
+          };
+        });
+        updateGuestTasks(guestTasksToSave);
       } else {
         // 서버에 priority 변경 동기화
         if (typeof updated.id === "number") {
-          await updateTask(updated.id, { priority: newPriority });
+          await updateTask(updated.id, {
+            priority: newPriority as "must" | "should" | "remind",
+          });
           // 특정 날짜의 캐시만 무효화
           const dateKey = selectedDate.toISOString().split("T")[0];
           queryClient.invalidateQueries({ queryKey: ["tasks", dateKey] });
@@ -355,29 +299,25 @@ export default function MyDayPage() {
     );
   }
 
-  // 에러 발생 시 (게스트 모드가 아닐 때만)
-  if (isError && !isGuest) {
-    const isTimeoutError = errorMessage === "timeout";
-
+  // 에러 발생 시
+  if (isError) {
     return (
       <MobileLayout headerTitle="나의 하루" showFab={false}>
         <div className="px-4 py-6">
           <DateHeader />
-          <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="text-center py-12">
             <div className="text-6xl mb-4">⚠️</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {isTimeoutError
-                ? "서버 연결 중..."
-                : "데이터를 불러올 수 없습니다"}
-            </h3>
-            <p className="text-gray-500 mb-4 text-sm leading-relaxed whitespace-pre-line">
-              {isTimeoutError
-                ? "서버가 시작되고 있습니다.\n첫 접속 시 1-2분 정도 걸릴 수 있어요."
-                : "네트워크 연결을 확인하고\n다시 시도해주세요."}
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              데이터를 불러올 수 없습니다
+            </h2>
+            <p className="text-gray-600 mb-6">
+              {errorMessage === "timeout"
+                ? "네트워크 연결을 확인해주세요."
+                : "잠시 후 다시 시도해주세요."}
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
             >
               다시 시도
             </button>
@@ -397,7 +337,7 @@ export default function MyDayPage() {
         <DateHeader />
       </div>
       <DragDropWrapper onDragEnd={handleDragEnd}>
-        <div className="px-4 py-10 space-y-8">
+        <div className="px-4 py-16 space-y-8 min-h-screen">
           <TaskGroup
             priority="must"
             title="오늘 무조건"

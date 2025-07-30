@@ -1,8 +1,7 @@
-// src/components/ui/Input/Input.tsx
 "use client";
 
 import { clsx } from "clsx";
-import { inputVariants } from "@/lib/styles/inputVariants";
+import { inputVariants } from "@/lib/styles";
 import { forwardRef, useState } from "react";
 import { motion } from "framer-motion";
 
@@ -154,6 +153,9 @@ export const Input = forwardRef<
             onBlur={handleBlur}
             onChange={handleChange}
             value={value}
+            autoComplete={
+              !isTextarea ? (props as InputPropsText).autoComplete : undefined
+            }
           />
           {renderFloatingLabel()}
         </>

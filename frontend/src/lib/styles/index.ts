@@ -8,6 +8,7 @@ export {
 export { checkboxVariants } from "./checkboxVariants";
 export { radioVariants } from "./radioVariants";
 export { modalVariants } from "./modalVariants";
+export { selectInputVariants } from "./selectInputVariants";
 
 // Design Tokens (추후 추가 가능)
 export const designTokens = {

@@ -27,19 +27,9 @@ export default function DragDropWrapper({
   return <DragDropContext onDragEnd={onDragEnd}>{children}</DragDropContext>;
 }
 
-// TaskGroup 컴포넌트들도 Dynamic Import
+// TaskGroup만 Dynamic Import (GuestTaskGroup은 제거)
 export const TaskGroup = dynamic(
   () => import("@/features/myday/components/TaskGroup"),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-32 bg-gray-100 rounded-lg animate-pulse" />
-    ),
-  }
-);
-
-export const GuestTaskGroup = dynamic(
-  () => import("@/features/myday/components/GuestTaskGroup"),
   {
     ssr: false,
     loading: () => (

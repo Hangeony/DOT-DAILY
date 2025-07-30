@@ -23,7 +23,7 @@ import {
 import { useDateStore } from "@/store/useDateStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/Toast/ToastProvider";
-import { useConfirm } from "@/components/ui/Modal/providers/ModalProvider";
+import { useModal } from "@/components/ui/Modal/providers/ModalProvider";
 import useAuthStore from "@/store/useAuthStore";
 
 // 공통 Task 인터페이스 (Task와 GuestTask를 모두 포함)
@@ -111,7 +111,7 @@ const TaskItem = React.memo(function TaskItem({
   const { selectedDate } = useDateStore();
   const { showToast } = useToast();
   const [showParticles, setShowParticles] = useState(false);
-  const confirm = useConfirm();
+  const { showConfirm } = useModal();
   const { isGuest } = useAuthStore();
 
   // 게스트 모드용 로컬 스토리지 함수들
@@ -185,35 +185,15 @@ const TaskItem = React.memo(function TaskItem({
     const originalStatus = task.status;
 
     try {
-      console.log("🔄 체크박스 클릭:", {
-        taskId: task.id,
-        currentStatus: originalStatus,
-        title: task.title,
-      });
-
       const updatedTask = await toggleTaskStatus(
         task.id as number,
         originalStatus!
       );
 
-      console.log("✅ 서버 응답:", {
-        id: updatedTask.id,
-        title: updatedTask.title,
-        newStatus: updatedTask.status,
-        type: typeof updatedTask.status,
-        eqSuccess: updatedTask.status === "success",
-      });
-
       const dateKey = selectedDate.toISOString().split("T")[0];
       queryClient.invalidateQueries({ queryKey: ["tasks", dateKey] });
 
       if (originalStatus !== updatedTask.status) {
-        console.log("토스트 분기 체크:", {
-          originalStatus,
-          updatedStatus: updatedTask.status,
-          eq: updatedTask.status === "success",
-          trimmed: updatedTask.status && updatedTask.status.trim(),
-        });
         if (
           typeof updatedTask.status === "string" &&
           updatedTask.status.trim().toLowerCase() === "success"
@@ -225,14 +205,14 @@ const TaskItem = React.memo(function TaskItem({
           showToast("할 일 완료가 취소되었습니다.");
         }
       }
-    } catch (error) {
-      console.error("상태 변경 실패:", error);
+    } catch {
+      // 상태 변경 실패
       showToast("상태 변경에 실패했습니다 😞");
     }
   };
 
   const handleDelete = async () => {
-    const confirmed = await confirm("정말로 이 할 일을 삭제하시겠습니까?");
+    const confirmed = await showConfirm("정말로 이 할 일을 삭제하시겠습니까?");
     if (!confirmed) return;
 
     if (isGuest) {
@@ -257,8 +237,8 @@ const TaskItem = React.memo(function TaskItem({
       });
 
       showToast("할 일이 삭제되었습니다 🗑️");
-    } catch (error) {
-      console.error("삭제 실패:", error);
+    } catch {
+      // 삭제 실패
       showToast("할 일 삭제에 실패했습니다 😞");
     }
   };
@@ -271,50 +251,32 @@ const TaskItem = React.memo(function TaskItem({
       return;
     }
 
-    const confirmed = await confirm(
+    const confirmed = await showConfirm(
       "이 할 일을 다음날로 재시도 이동하시겠습니까?"
     );
     if (!confirmed) return;
 
     try {
-      const result = await moveToRetry(task.id as number);
-
-      // 할 일의 원래 날짜를 기준으로 캐시 처리
-      const taskDateKey = task.date; // 할 일의 실제 날짜
-      const currentDateKey = selectedDate.toISOString().split("T")[0];
+      await moveToRetry(task.id as number);
 
       // 현재 보고 있는 날짜에서 할 일 제거
+      const currentDateKey = selectedDate.toISOString().split("T")[0];
       queryClient.setQueryData(["tasks", currentDateKey], (old: Task[] = []) =>
         old.filter((t) => t.id !== task.id)
       );
 
-      // 할 일의 원래 날짜와 현재 날짜가 다르면 원래 날짜 캐시도 무효화
-      if (taskDateKey !== currentDateKey) {
-        queryClient.invalidateQueries({ queryKey: ["tasks", taskDateKey] });
-      }
-
-      // 여러 날짜의 캐시를 무효화 (백엔드 날짜 계산 불확실성 대응)
-      const today = new Date(selectedDate);
-      const tomorrow = new Date(selectedDate);
-      const dayAfterTomorrow = new Date(selectedDate);
-
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
-
-      const todayKey = today.toISOString().split("T")[0];
-      const tomorrowKey = tomorrow.toISOString().split("T")[0];
-      const dayAfterTomorrowKey = dayAfterTomorrow.toISOString().split("T")[0];
-
-      // 오늘, 내일, 모레 캐시 모두 무효화
-      queryClient.invalidateQueries({ queryKey: ["tasks", todayKey] });
-      queryClient.invalidateQueries({ queryKey: ["tasks", tomorrowKey] });
+      // 할 일의 현재 날짜 기준으로 다음날 계산해서 캐시 무효화
+      const taskCurrentDate = new Date(task.date);
+      const nextDate = new Date(taskCurrentDate);
+      nextDate.setDate(taskCurrentDate.getDate() + 1);
+      const nextDateKey = nextDate.toISOString().split("T")[0];
       queryClient.invalidateQueries({
-        queryKey: ["tasks", dayAfterTomorrowKey],
+        queryKey: ["tasks", nextDateKey],
       });
 
       showToast("할 일이 다음날로 재시도 이동되었습니다! 🔄✨");
-    } catch (error) {
-      console.error("재시도 이동 실패:", error);
+    } catch {
+      // 재시도 이동 실패
       showToast("재시도 이동에 실패했습니다 😞");
     }
   };
@@ -327,7 +289,9 @@ const TaskItem = React.memo(function TaskItem({
       return;
     }
 
-    const confirmed = await confirm("이 할 일을 보류함으로 이동하시겠습니까?");
+    const confirmed = await showConfirm(
+      "이 할 일을 보류함으로 이동하시겠습니까?"
+    );
     if (!confirmed) return;
 
     try {
@@ -402,7 +366,7 @@ const TaskItem = React.memo(function TaskItem({
           >
             <MoreHorizontal className="w-5 h-5 text-gray-500" />
           </Menu.Button>
-          <Menu.Items className="absolute right-0 z-[100] mt-2 min-w-[120px] w-32 max-w-[90vw] origin-top-right bg-surface-card rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none max-h-48 overflow-y-auto">
+          <Menu.Items className="absolute right-0 z-[100] mt-2 min-w-[120px] w-32 max-w-[90vw] origin-top-right bg-surface-card rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
             <div className="py-1">
               <Menu.Item>
                 {({ active }) => (

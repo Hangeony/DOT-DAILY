@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 
 export interface EmotionStat {
   icon: string; // 이미지 경로
@@ -20,11 +21,12 @@ export const EmotionStatList: React.FC<EmotionStatListProps> = ({ stats }) => (
       >
         <div className="flex items-center">
           <div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center mr-3">
-            <img
+            <Image
               src={stat.icon}
               alt={stat.label}
+              width={24}
+              height={24}
               className="w-6 h-6"
-              style={{ width: "24px", height: "24px", display: "block" }}
             />
           </div>
           <span className="text-gray-700 font-medium">{stat.label}</span>

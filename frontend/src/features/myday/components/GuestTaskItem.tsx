@@ -12,7 +12,7 @@ import {
   deleteGuestTask,
 } from "@/lib/api/guestTasks";
 import { useToast } from "@/components/ui/Toast/ToastProvider";
-import { useConfirm } from "@/components/ui/Modal/providers/ModalProvider";
+import { useModal } from "@/components/ui/Modal/providers/ModalProvider";
 
 interface GuestTaskItemProps {
   task: GuestTask;
@@ -84,7 +84,7 @@ const GuestTaskItem = React.memo(function GuestTaskItem({
 }: GuestTaskItemProps) {
   const { showToast } = useToast();
   const [showParticles, setShowParticles] = useState(false);
-  const confirm = useConfirm();
+  const { showConfirm } = useModal();
 
   const handleToggleStatus = async () => {
     const originalStatus = task.status;
@@ -106,14 +106,14 @@ const GuestTaskItem = React.memo(function GuestTaskItem({
           showToast("할 일 완료가 취소되었습니다.");
         }
       }
-    } catch (error) {
-      console.error("상태 변경 실패:", error);
+    } catch {
+      // 상태 변경 실패
       showToast("상태 변경에 실패했습니다 😞");
     }
   };
 
   const handleDelete = async () => {
-    const confirmed = await confirm("정말로 이 할 일을 삭제하시겠습니까?");
+    const confirmed = await showConfirm("정말로 이 할 일을 삭제하시겠습니까?");
     if (!confirmed) return;
 
     try {
@@ -123,8 +123,8 @@ const GuestTaskItem = React.memo(function GuestTaskItem({
         onUpdate(); // 부모 컴포넌트에서 상태 업데이트
         showToast("할 일이 삭제되었습니다 🗑️");
       }
-    } catch (error) {
-      console.error("삭제 실패:", error);
+    } catch {
+      // 삭제 실패
       showToast("할 일 삭제에 실패했습니다 😞");
     }
   };

@@ -1,4 +1,3 @@
-// UI Components Barrel Export
 export { Button } from "./Button/Button";
 export { Input } from "./Input/Input";
 export { default as Modal } from "./Modal/components/FullScreenModal";

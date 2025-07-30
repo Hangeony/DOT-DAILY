@@ -1,8 +1,5 @@
 import { create } from "zustand";
-import {
-  DailyEmotionMemo,
-  YearMonth,
-} from "@/features/retrospect/types/retrospect";
+import { DailyEmotionMemo, YearMonth } from "@/types/retrospect";
 
 interface RetrospectState {
   selectedYearMonth: YearMonth;

@@ -1,14 +1,13 @@
-// src/app/layout.tsx
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import Providers from "./providers";
 
 const pretendard = localFont({
-  src: "../fonts/Pretendard/PretendardVariable.woff2",
+  src: "../../public/fonts/Pretendard/PretendardVariable.woff2",
   variable: "--font-pretendard",
   display: "swap",
-  preload: true,
+  preload: false,
   fallback: [
     "-apple-system",
     "BlinkMacSystemFont",
@@ -21,16 +20,36 @@ const pretendard = localFont({
 });
 
 const kkonghae = localFont({
-  src: "../fonts/kkonghae.woff2",
+  src: "../../public/fonts/kkonghae.woff2",
   variable: "--font-kkonghae",
   display: "swap",
-  preload: true,
+  preload: false,
   fallback: ["Cafe24Ssurround", "KCC-Ganpan", "cursive", "fantasy"],
 });
 
 export const metadata: Metadata = {
   title: "DOT.DAILY",
   description: "투두 + 회고 기록 앱",
+  metadataBase: new URL("https://dot-daily.vercel.app"),
+  openGraph: {
+    title: "DOT.DAILY",
+    description: "투두 + 회고 기록 앱",
+    type: "website",
+    images: [
+      {
+        url: "/logo-vertical.svg",
+        width: 200,
+        height: 200,
+        alt: "DOT.DAILY 로고",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "DOT.DAILY",
+    description: "투두 + 회고 기록 앱",
+    images: ["/logo-vertical.svg"],
+  },
 };
 
 export const viewport: Viewport = {
@@ -42,9 +61,9 @@ export const viewport: Viewport = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="ko">
       <head>
@@ -58,47 +77,12 @@ export default function RootLayout({
               .mx-auto { margin-left: auto; margin-right: auto; }
               .min-h-screen { min-height: 100vh; }
               .bg-surface-base { background-color: #f8fafc; }
-              .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
-              .overflow-hidden { overflow: hidden; }
-              .relative { position: relative; }
             `,
           }}
         />
 
-        {/* 폰트 preload */}
-        <link
-          rel="preload"
-          href="/fonts/Pretendard/PretendardVariable.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin=""
-        />
-        <link
-          rel="preload"
-          href="/fonts/kkonghae.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin=""
-        />
-
-        {/* SVG preload 제거 - 인라인 SVG 사용으로 불필요 */}
-        <link
-          rel="preload"
-          href="/dropdown.svg"
-          as="image"
-          type="image/svg+xml"
-        />
-
-        {/* DNS prefetch for external domains */}
+        {/* DNS prefetch for Google OAuth */}
         <link rel="dns-prefetch" href="https://accounts.google.com" />
-
-        {/* Resource hints */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin=""
-        />
       </head>
       <body className={`${pretendard.variable} ${kkonghae.variable} font-sans`}>
         <Providers>

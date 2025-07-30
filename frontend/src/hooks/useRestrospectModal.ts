@@ -55,15 +55,19 @@ export const useRetrospectModal = () => {
     emotion: Emotion["id"] | "",
     retrospectText: string
   ) => {
-    const updatedMemo = {
-      date: selectedDate,
-      emotion: emotion as Emotion["id"],
-      memo: retrospectText,
-    };
-    updateEmotionMemo(updatedMemo);
-    await updateDailyEmotionMemo(updatedMemo);
-    showToast("회고가 수정되었습니다! ✏️");
-    closeModal();
+    try {
+      const updatedMemo = {
+        date: selectedDate,
+        emotion: emotion as Emotion["id"],
+        memo: retrospectText,
+      };
+      updateEmotionMemo(updatedMemo);
+      await updateDailyEmotionMemo(updatedMemo);
+      showToast("회고가 수정되었습니다! ✏️");
+      closeModal();
+    } catch {
+      showToast("회고 수정에 실패했습니다 😞");
+    }
   };
 
   const onDelete = async () => {

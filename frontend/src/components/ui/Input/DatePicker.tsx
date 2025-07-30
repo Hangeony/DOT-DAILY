@@ -1,20 +1,20 @@
 // src/components/ui/Input/DatePicker.tsx
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { DayPicker } from 'react-day-picker';
-import 'react-day-picker/dist/style.css';
-import { format } from 'date-fns';
-import { CalendarIcon } from 'lucide-react';
-import clsx from 'clsx';
-import { inputVariants } from '@/lib/styles/inputVariants';
-import type { Size } from './Input'; // ✅ 여기 import
+import { useState, useEffect, useRef } from "react";
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import clsx from "clsx";
+import { inputVariants } from "@/lib/styles";
+import type { Size } from "./Input";
 
 interface DatePickerProps {
   id?: string;
   label?: string;
-  state?: 'default' | 'error' | 'success';
-  size?: Size; // ✅ string 아님
+  state?: "default" | "error" | "success";
+  size?: Size;
   disabled?: boolean;
   readOnly?: boolean;
   loading?: boolean;
@@ -26,8 +26,8 @@ interface DatePickerProps {
 export function DatePicker({
   id,
   label,
-  state = 'default',
-  size = 'md',
+  state = "default",
+  size = "md",
   disabled = false,
   readOnly = false,
   loading = false,
@@ -48,8 +48,8 @@ export function DatePicker({
         setOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleSelect = (date: Date | undefined) => {
@@ -61,9 +61,9 @@ export function DatePicker({
 
   const baseClass = clsx(
     inputVariants({ size, state }),
-    'relative w-full cursor-pointer',
+    "relative w-full cursor-pointer",
     {
-      'opacity-50 cursor-not-allowed bg-gray-100': disabled || loading,
+      "opacity-50 cursor-not-allowed bg-gray-100": disabled || loading,
     },
     className
   );
@@ -88,7 +88,7 @@ export function DatePicker({
         onClick={() => !disabled && !readOnly && setOpen(!open)}
       >
         <span className="w-full h-full flex items-center text-gray-800 px-4 text-sm">
-          {selected ? format(selected, 'yyyy-MM-dd') : '날짜를 선택해주세요'}
+          {selected ? format(selected, "yyyy-MM-dd") : "날짜를 선택해주세요"}
         </span>
         <CalendarIcon className="absolute top-1/2 right-3 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
       </div>
@@ -101,12 +101,13 @@ export function DatePicker({
             onSelect={handleSelect}
             className="text-sm text-gray-800 flex justify-center"
             classNames={{
-              nav_button: 'text-indigo-600 hover:text-indigo-400 transition-colors',
-              day_selected: 'bg-indigo-600 text-white',
+              nav_button:
+                "text-indigo-600 hover:text-indigo-400 transition-colors",
+              day_selected: "bg-indigo-600 text-white",
             }}
             modifiersClassNames={{
-              selected: 'bg-indigo-600 text-white',
-              today: 'text-indigo-600 font-semibold',
+              selected: "bg-indigo-600 text-white",
+              today: "text-indigo-600 font-semibold",
             }}
           />
         </div>

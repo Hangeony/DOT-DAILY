@@ -1,5 +1,5 @@
 import { httpClient } from "@/lib/api/http";
-import { DailyEmotionMemo } from "../../features/retrospect/types/retrospect";
+import { DailyEmotionMemo } from "@/types/retrospect";
 import { formatDateToString } from "../../utils/retrospectUtils";
 import { EMOTION_TO_STICKER_ID } from "@/constants/emotion";
 const createMemoPayload = (memo: {

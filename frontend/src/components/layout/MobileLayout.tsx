@@ -18,11 +18,10 @@ export default function MobileLayout({
   onFabClick,
 }: MobileLayoutProps) {
   return (
-    <div className="w-full max-w-md mx-auto min-h-screen bg-surface-base shadow-lg relative overflow-hidden">
+    <div className="w-full min-h-screen flex flex-col">
       <Header title={headerTitle} />
-      <main className="pb-20 overflow-y-auto min-h-0 flex-1">{children}</main>
+      <main className="flex-1 overflow-y-auto pb-20 min-h-0">{children}</main>
       <Footer />
-      {/* FAB는 fixed 포지션으로 Footer와 독립적으로 위치 - 오른쪽 정렬 */}
       {showFab && (
         <div className="fixed bottom-[100px] z-50 max-w-md mx-auto left-0 right-0">
           <div className="flex justify-end pr-4">

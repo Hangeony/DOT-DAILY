@@ -1,4 +1,5 @@
 import { Emotion, EMOTIONS } from "@/constants/emotion";
+import Image from "next/image";
 
 interface EmotionSelectorProps {
   selectedEmotion: Emotion["id"] | "";
@@ -20,13 +21,15 @@ export default function EmotionSelector({
             onClick={() => setSelectedEmotion(emotion.id)}
             className="flex flex-col items-center gap-2"
           >
-            <img
+            <Image
               alt={emotion.label}
               src={
                 selectedEmotion === emotion.id
                   ? `/${emotion.id}-on.svg`
                   : `/${emotion.id}-off.svg`
               }
+              width={48}
+              height={48}
               className="w-12 h-12"
             />
             <span className="text-xs text-gray-600">{emotion.label}</span>

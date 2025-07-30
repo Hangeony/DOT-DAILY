@@ -43,8 +43,13 @@ const DateHeader = React.memo(() => {
   );
 
   useEffect(() => {
-    controls.start({ x: 0 });
-    x.set(0);
+    // requestAnimationFrame을 사용하여 레이아웃 계산을 다음 프레임으로 지연
+    const rafId = requestAnimationFrame(() => {
+      controls.start({ x: 0 });
+      x.set(0);
+    });
+
+    return () => cancelAnimationFrame(rafId);
   }, [selectedDate, controls, x]);
 
   const handleDateClick = useCallback(
@@ -57,7 +62,7 @@ const DateHeader = React.memo(() => {
   return (
     <div className="relative w-full flex justify-center items-center py-3 px-2 overflow-x-hidden">
       <motion.div
-        className="flex items-center justify-center w-full relative z-0"
+        className="flex items-center justify-center w-full relative z-0 transform-gpu animate-optimized"
         style={{ x, touchAction: "pan-x", gap: `${gap}px` }}
         drag="x"
         dragElastic={0.2}

@@ -18,47 +18,62 @@ export const httpClient = axios.create({
 httpClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     if (isBrowser()) {
-      // 게스트 모드인지 확인
-      const authStorage = localStorage.getItem("auth-storage");
-      if (authStorage) {
+      // 인증 관련 API는 게스트 모드 체크를 건너뛰기
+      const isAuthEndpoint = config.url?.includes("/auth/");
+
+      if (!isAuthEndpoint) {
+        // 게스트 모드인지 확인 - 더 강력한 체크
+        const authStorage = localStorage.getItem("auth-storage");
+
+        // auth-storage가 없으면 게스트 모드로 간주하고 요청 중단
+        if (!authStorage) {
+          return Promise.reject(new Error("Guest mode - API request blocked"));
+        }
+
         try {
           const authData = JSON.parse(authStorage);
-          if (authData.state?.isGuest) {
-            // 게스트 모드일 때는 요청을 중단
-            console.log("🚫 게스트 모드: API 요청 중단");
+
+          // 게스트 모드이거나 초기화되지 않은 상태에서는 요청을 중단
+          if (
+            authData.state?.isGuest ||
+            authData.state?.isInitialized === false
+          ) {
             return Promise.reject(
               new Error("Guest mode - API request blocked")
             );
           }
-        } catch (e) {
-          console.warn("Auth storage 파싱 실패:", e);
+        } catch {
+          // 파싱 실패 시에도 요청 중단 (안전을 위해)
+          return Promise.reject(new Error("Guest mode - API request blocked"));
         }
-      }
 
-      const token = localStorage.getItem("accessToken");
-      if (token) {
-        if (token.startsWith("Bearer ")) {
-          config.headers["Authorization"] = token;
-          console.log(
-            "🔑 API 요청에 토큰 추가됨 (Bearer 포함):",
-            token.substring(0, 20) + "..."
-          );
+        const token = localStorage.getItem("accessToken");
+        if (token) {
+          if (token.startsWith("Bearer ")) {
+            config.headers["Authorization"] = token;
+          } else {
+            config.headers["Authorization"] = `Bearer ${token}`;
+          }
         } else {
-          config.headers["Authorization"] = `Bearer ${token}`;
-          console.log(
-            "🔑 API 요청에 토큰 추가됨 (Bearer 추가):",
-            token.substring(0, 20) + "..."
-          );
+          // 토큰이 없으면 요청 중단 (게스트 모드이거나 인증되지 않은 상태)
+          return Promise.reject(new Error("No access token"));
         }
       } else {
-        console.log("⚠️ API 요청에 토큰이 없음");
+        // 인증 API의 경우 토큰이 있으면 추가
+        const token = localStorage.getItem("accessToken");
+        if (token) {
+          if (token.startsWith("Bearer ")) {
+            config.headers["Authorization"] = token;
+          } else {
+            config.headers["Authorization"] = `Bearer ${token}`;
+          }
+        }
       }
     }
 
     return config;
   },
   (error) => {
-    console.log("[Axios][Request Error]", error);
     return Promise.reject(error);
   }
 );
@@ -78,19 +93,12 @@ httpClient.interceptors.response.use(
     }
 
     if (error.response?.status === 401 && isBrowser()) {
-      console.log("❌ 401 Unauthorized 오류 발생:", {
-        url: error.config?.url,
-        method: error.config?.method,
-        status: error.response?.status,
-      });
-
       localStorage.removeItem("accessToken");
       localStorage.removeItem("auth-storage");
 
       // 로그인 페이지로 리다이렉트
       window.location.href = "/login";
     }
-    console.log("[Axios][Response Error]", error);
     return Promise.reject(error);
   }
 );

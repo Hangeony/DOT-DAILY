@@ -1,7 +1,18 @@
 "use client";
 import MobileLayout from "@/components/layout/MobileLayout";
-import { EmotionStatList, EmotionStat } from "@/components/ui/EmotionStatList";
+import { EmotionStatList } from "@/components/ui/EmotionStatList";
 import { Button } from "@/components/ui/Button/Button";
+import { logout } from "@/lib/api/auth";
+import { useRouter } from "next/navigation";
+import { useMemo } from "react";
+import { getUserProfileStats } from "@/lib/api/profile";
+import useAuthStore from "@/store/useAuthStore";
+import { useModal } from "@/components/ui/Modal/providers/ModalProvider";
+import { useQuery } from "@tanstack/react-query";
+import { PageSkeleton } from "@/components/ui/Skeleton";
+import { useState } from "react";
+
+// 아이콘들을 직접 import
 import {
   LogOut,
   Lock,
@@ -11,15 +22,6 @@ import {
   RefreshCw,
   Archive,
 } from "@/components/ui/Icon";
-import { logout } from "@/lib/api/auth";
-import { useRouter } from "next/navigation";
-import { useMemo } from "react";
-import { getUserProfileStats } from "@/lib/api/profile";
-import useAuthStore from "@/store/useAuthStore";
-import { useConfirm } from "@/components/ui/Modal/providers/ModalProvider";
-import { useQuery } from "@tanstack/react-query";
-import { PageSkeleton } from "@/components/ui/Skeleton";
-import { useState } from "react";
 
 interface StatItem {
   value: number;
@@ -29,17 +31,24 @@ interface StatItem {
   bgColor?: string;
 }
 
+interface EmotionStat {
+  icon: string;
+  label: string;
+  count: number;
+  color: string;
+}
+
 export default function ProfilePage() {
   const router = useRouter();
-  const { isGuest, clearGuestMode } = useAuthStore();
-  const confirm = useConfirm();
+  const { isGuest, isInitialized, clearGuestMode } = useAuthStore();
+  const { showConfirm } = useModal();
   const [period, setPeriod] = useState<"all" | "month" | "week">("all");
 
   // React Query로 성능 최적화
   const { data: profileData, isLoading } = useQuery({
     queryKey: ["userProfileStats", period],
     queryFn: () => getUserProfileStats(period),
-    enabled: !isGuest, // 게스트 모드가 아닐 때만 실행
+    enabled: isInitialized && !isGuest, // 초기화 완료 후 게스트가 아닐 때만 실행
     staleTime: 0, // 기간 변경 시 즉시 새로운 데이터 요청
     refetchOnWindowFocus: false,
   });
@@ -116,7 +125,7 @@ export default function ProfilePage() {
 
   const onLogout = async () => {
     if (isGuest) {
-      const confirmed = await confirm("게스트 모드를 종료하시겠습니까?");
+      const confirmed = await showConfirm("게스트 모드를 종료하시겠습니까?");
       if (confirmed) {
         // 게스트 모드 완전 초기화
         clearGuestMode();
@@ -131,7 +140,7 @@ export default function ProfilePage() {
         window.location.href = "/"; // 강제 새로고침
       }
     } else {
-      const confirmed = await confirm("정말 로그아웃하시겠습니까?");
+      const confirmed = await showConfirm("정말 로그아웃하시겠습니까?");
       if (confirmed) {
         try {
           await logout();
@@ -145,8 +154,8 @@ export default function ProfilePage() {
             }
           });
           window.location.href = "/"; // 강제 새로고침으로 게스트 모드 선택 페이지로 이동
-        } catch (error) {
-          console.error("로그아웃 실패:", error);
+        } catch {
+          // 로그아웃 실패
           alert("로그아웃 중 오류가 발생했습니다.");
         }
       }

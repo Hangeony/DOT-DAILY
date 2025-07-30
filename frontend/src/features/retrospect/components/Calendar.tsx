@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useEffect, useRef } from "react";
+import Image from "next/image";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { DateClickArg } from "@fullcalendar/interaction";
@@ -23,13 +24,9 @@ const Calendar = ({ onDateModalOpen }: CalendarProps) => {
 
   const onDateClick = useCallback(
     (dateInfo: DateClickArg) => {
-      // 개발 모드에서만 로그 출력
-      if (process.env.NODE_ENV === "development") {
-        console.log("📅 날짜 클릭:", formatDateToString(dateInfo.date));
-      }
       setSelectedDate(dateInfo.date);
     },
-    [selectedDate, setSelectedDate]
+    [setSelectedDate]
   );
 
   const onDateNavigation = useCallback(() => {
@@ -79,8 +76,8 @@ const Calendar = ({ onDateModalOpen }: CalendarProps) => {
           selectedYearMonth.month
         );
         setEmotionMemoList(memos);
-      } catch (error) {
-        console.error("감정 메모 조회 실패:", error);
+      } catch {
+        // 감정 메모 조회 실패
       }
     };
 
@@ -104,12 +101,12 @@ const Calendar = ({ onDateModalOpen }: CalendarProps) => {
         className="flex gap-2 items-center text-xl font-bold mb-8"
       >
         {selectedYearMonth.year}. {selectedYearMonth.month}
-        <img
+        <Image
           src="/dropdown.svg"
           alt="달력 선택"
           width={20}
           height={20}
-          style={{ width: 20, height: 20 }}
+          style={{ width: "20px", height: "20px" }}
         />
       </button>
       <div className="calendar-container">

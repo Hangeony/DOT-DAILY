@@ -1,18 +1,13 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-}
+import { User } from "@/types/auth";
 
 interface AuthState {
   user: User | null;
   isGuest: boolean;
   isAuthenticated: boolean;
   accessToken: string | null;
-  isInitialized: boolean; // 초기화 상태 추가
+  isInitialized: boolean;
 
   initialize: () => void;
   login: (user: User, token: string) => void;
@@ -37,41 +32,8 @@ const useAuthStore = create<AuthState>()(
           return;
         }
 
-        if (typeof window !== "undefined") {
-          const token = localStorage.getItem("accessToken");
-          const authStorage = localStorage.getItem("auth-storage");
-
-          if (token && authStorage) {
-            try {
-              const authData = JSON.parse(authStorage);
-
-              if (authData.state?.isAuthenticated && authData.state?.user) {
-                set({
-                  user: authData.state.user,
-                  isAuthenticated: true,
-                  isGuest: false,
-                  accessToken: token,
-                  isInitialized: true,
-                });
-                return;
-              }
-
-              if (authData.state?.isGuest) {
-                set({
-                  user: null,
-                  isAuthenticated: false,
-                  isGuest: true,
-                  accessToken: null,
-                  isInitialized: true,
-                });
-                return;
-              }
-            } catch {
-              // 파싱 실패 시 기본값으로 진행
-            }
-          }
-
-          // 기본값으로 초기화
+        // 서버 사이드에서는 초기화하지 않음
+        if (typeof window === "undefined") {
           set({
             user: null,
             isAuthenticated: false,
@@ -79,7 +41,50 @@ const useAuthStore = create<AuthState>()(
             accessToken: null,
             isInitialized: true,
           });
+          return;
         }
+
+        const token = localStorage.getItem("accessToken");
+        const authStorage = localStorage.getItem("auth-storage");
+
+        if (token && authStorage) {
+          try {
+            const authData = JSON.parse(authStorage);
+
+            if (authData.state?.isAuthenticated && authData.state?.user) {
+              set({
+                user: authData.state.user,
+                isAuthenticated: true,
+                isGuest: false,
+                accessToken: token,
+                isInitialized: true,
+              });
+              return;
+            }
+
+            if (authData.state?.isGuest) {
+              set({
+                user: null,
+                isAuthenticated: false,
+                isGuest: true,
+                accessToken: null,
+                isInitialized: true,
+              });
+              return;
+            }
+          } catch {
+            // 파싱 실패 시 기본값으로 진행
+          }
+        }
+
+        // 기본값으로 초기화
+        set({
+          user: null,
+          isAuthenticated: false,
+          isGuest: false,
+          accessToken: null,
+          isInitialized: true,
+        });
       },
 
       login: (user: User, token: string) =>
@@ -104,14 +109,18 @@ const useAuthStore = create<AuthState>()(
         });
       },
 
-      setGuestMode: () =>
+      setGuestMode: () => {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("accessToken");
+        }
         set({
           user: null,
           isAuthenticated: false,
           isGuest: true,
           accessToken: null,
           isInitialized: true,
-        }),
+        });
+      },
 
       clearGuestMode: () =>
         set({

@@ -7,22 +7,73 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 const nextConfig: NextConfig = {
   /* config options here */
 
-  // 성능 최적화 설정
-  // 실험적 기능 제거 (안정성 우선)
-  experimental: {},
-
-  // Turbopack 설정 (안정 버전으로 이동)
-  turbopack: {
-    rules: {
-      "*.svg": {
-        loaders: ["@svgr/webpack"],
-        as: "*.js",
-      },
-    },
+  // 성능 최적화 설정 - 단순화
+  experimental: {
+    optimizeCss: true, // CSS 최적화만 유지
   },
 
-  // Webpack 설정 제거 (기본값 사용)
-  // 이미지 최적화 강화
+  // Webpack 최적화 설정 - 단순화
+  webpack: (config, { dev, isServer }) => {
+    // 프로덕션 빌드에서만 최적화 적용
+    if (!dev && !isServer) {
+      // Tree shaking 강화
+      config.optimization.usedExports = true;
+      config.optimization.sideEffects = false;
+
+      // 번들 분할 최적화 (성능 향상)
+      config.optimization.splitChunks = {
+        chunks: "all",
+        minSize: 20000,
+        maxSize: 244000, // 최대 번들 크기 제한
+        cacheGroups: {
+          // 드래그 앤 드롭 라이브러리 (큰 번들)
+          dnd: {
+            test: /[\\/]node_modules[\\/]@hello-pangea[\\/]/,
+            name: "dnd",
+            chunks: "all",
+            priority: 50,
+            enforce: true,
+          },
+          // 애니메이션 라이브러리
+          animation: {
+            test: /[\\/]node_modules[\\/]framer-motion[\\/]/,
+            name: "animation",
+            chunks: "all",
+            priority: 45,
+            enforce: true,
+          },
+          // React 관련 라이브러리
+          react: {
+            test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+            name: "react",
+            chunks: "all",
+            priority: 40,
+            enforce: true,
+          },
+          // 상태 관리 라이브러리
+          state: {
+            test: /[\\/]node_modules[\\/](zustand|@tanstack)[\\/]/,
+            name: "state",
+            chunks: "all",
+            priority: 30,
+            enforce: true,
+          },
+          // 기타 라이브러리
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: "vendor",
+            chunks: "all",
+            priority: 10,
+            enforce: true,
+          },
+        },
+      };
+    }
+
+    return config;
+  },
+
+  // 이미지 최적화
   images: {
     formats: ["image/webp", "image/avif"],
     deviceSizes: [640, 750, 828, 1080, 1200],
@@ -31,11 +82,10 @@ const nextConfig: NextConfig = {
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
+
   // 압축 활성화
   compress: true,
-  // 정적 최적화 (배포 시에만 사용)
-  // output: "standalone",
-  // PWA 설정 (선택사항)
+
   async headers() {
     return [
       {
@@ -64,26 +114,6 @@ const nextConfig: NextConfig = {
             value: "no-store, must-revalidate",
           },
         ],
-      },
-      // Back/Forward Cache 최적화
-      {
-        source: "/(.*)",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=0, must-revalidate",
-          },
-        ],
-      },
-    ];
-  },
-  // Chrome DevTools 요청 처리
-  async redirects() {
-    return [
-      {
-        source: "/.well-known/appspecific/com.chrome.devtools.json",
-        destination: "/",
-        permanent: false,
       },
     ];
   },

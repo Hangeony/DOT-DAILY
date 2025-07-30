@@ -8,6 +8,11 @@ export const getUserProfileStats = async (
     const response = await httpClient.get(`user/stats${params}`);
     return response.data.data;
   } catch (error: unknown) {
+    // 게스트 모드 오류는 조용하게 처리
+    if (error instanceof Error && error.message.includes("Guest mode")) {
+      throw error; // 게스트 모드 오류는 그대로 전파
+    }
+
     console.error("❌ 사용자 통계 조회 실패:", error);
 
     // 500 에러 시 기본 통계 데이터 반환

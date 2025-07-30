@@ -71,7 +71,6 @@ export const createGoogleUserData = async (userData: {
   try {
     console.log("🔄 Google 사용자 데이터 생성 시도:", userData);
 
-    // 사용자 데이터 생성 API 호출 (백엔드에 해당 엔드포인트가 있다면)
     const response = await httpClient.post("/auth/google/user", {
       id: userData.id,
       email: userData.email,
@@ -83,7 +82,6 @@ export const createGoogleUserData = async (userData: {
     return response.data;
   } catch (error: unknown) {
     console.log("⚠️ Google 사용자 데이터 생성 실패 (무시됨):", error);
-    // 실패해도 무시 (이미 로그인은 성공했으므로)
     return null;
   }
 };

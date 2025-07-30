@@ -1,20 +1,20 @@
-'use client';
-import React from 'react';
-import type { Meta, StoryObj } from '@storybook/react';
+"use client";
+import React from "react";
+import type { Meta, StoryObj } from "@storybook/react";
 import {
   FullScreenModalProvider,
   useFullScreenModal,
-} from './providers/FullScreenModalProvider';
-import { Button } from '../Button/Button';
-import { ToastProvider } from '../Toast/ToastProvider';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState } from 'react';
+} from "./providers/FullScreenModalProvider";
+import { Button } from "../Button/Button";
+import { ToastProvider } from "../Toast/ToastProvider";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useState } from "react";
 
 const meta: Meta = {
-  title: 'Components/FullScreenModal',
+  title: "Components/FullScreenModal",
   component: () => null,
   parameters: {
-    layout: 'fullscreen',
+    layout: "fullscreen",
   },
   decorators: [
     (StoryFn) => {
@@ -43,9 +43,11 @@ const TaskFormExample = () => {
       <h2 className="text-lg font-bold">할 일 추가 모달</h2>
       <Button
         label="할 일 추가 모달 열기"
-        onClick={() => openModal('taskForm', {
-          defaultDate: '2025-06-20',
-        })}
+        onClick={() =>
+          openModal("taskForm", {
+            defaultDate: "2025-06-20",
+          })
+        }
       />
     </div>
   );
@@ -58,7 +60,7 @@ const RetrospectFormExample = () => {
       <h2 className="text-lg font-bold">회고 작성 모달</h2>
       <Button
         label="회고 작성 모달 열기"
-        onClick={() => openModal('retrospectForm')}
+        onClick={() => openModal("retrospectForm")}
       />
     </div>
   );
@@ -71,7 +73,7 @@ const DateNavigationExample = () => {
       <h2 className="text-lg font-bold">날짜 선택 모달</h2>
       <Button
         label="날짜 선택 모달 열기"
-        onClick={() => openModal('dateNavigationForm')}
+        onClick={() => openModal("dateNavigationForm")}
       />
     </div>
   );
@@ -85,17 +87,19 @@ const AllModalsExample = () => {
       <div className="flex flex-col gap-2">
         <Button
           label="할 일 추가 모달"
-          onClick={() => openModal('taskForm', {
-            defaultDate: '2025-06-20',
-          })}
+          onClick={() =>
+            openModal("taskForm", {
+              defaultDate: "2025-06-20",
+            })
+          }
         />
         <Button
           label="회고 작성 모달"
-          onClick={() => openModal('retrospectForm')}
+          onClick={() => openModal("retrospectForm")}
         />
         <Button
           label="날짜 선택 모달"
-          onClick={() => openModal('dateNavigationForm')}
+          onClick={() => openModal("dateNavigationForm")}
         />
       </div>
     </div>

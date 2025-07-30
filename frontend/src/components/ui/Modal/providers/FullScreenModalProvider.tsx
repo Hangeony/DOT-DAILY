@@ -1,61 +1,55 @@
 "use client";
 
-import React, {
+import {
   createContext,
-  useCallback,
   useContext,
   useState,
+  ReactNode,
+  useCallback,
   useEffect,
-  type ReactNode,
 } from "react";
 import { AnimatePresence } from "framer-motion";
-import { TaskFormModal } from "@/features/myday/components";
+import FullScreenModal from "../components/FullScreenModal";
+import BottomSheetModal from "../components/BottomSheetModal";
+import TaskFormModal from "@/features/myday/components/TaskFormModal";
 import RetrospectModal from "@/features/retrospect/components/RetrospectModal";
-import FullScreenModal from "@/components/ui/Modal/components/FullScreenModal";
-import BottomSheetModal from "@/components/ui/Modal/components/BottomSheetModal";
 import DateNavigationModal from "@/features/retrospect/components/DateNavigationModal";
 import { useRetrospectModal } from "@/hooks/useRestrospectModal";
 
-export type ModalName =
-  | "taskForm"
-  | "retrospectForm"
-  | "dateNavigationForm"
-  | null;
+// 모달 이름 타입
+type ModalName = "taskForm" | "retrospectForm" | "dateNavigationForm" | null;
 
-export interface TaskFormModalProps {
+// 모달 props 타입
+type ModalProps = {
   defaultDate?: string;
-}
+  taskId?: number;
+  [key: string]: unknown;
+} | null;
 
-export type RetrospectModalProps = Record<string, never>;
-
-export type DateNavigationModalProps = Record<string, never>;
-
-type ModalProps =
-  | TaskFormModalProps
-  | RetrospectModalProps
-  | DateNavigationModalProps
-  | null;
-
-interface ModalContextType {
+// Context 타입 정의
+interface FullScreenModalContextType {
   modalName: ModalName;
   modalProps: ModalProps;
   openModal: (name: ModalName, props?: ModalProps) => void;
   closeModal: () => void;
 }
 
-const FullScreenModalContext = createContext<ModalContextType | undefined>(
-  undefined
+// Context 생성
+const FullScreenModalContext = createContext<FullScreenModalContextType | null>(
+  null
 );
 
-export const FullScreenModalProvider = ({
-  children,
-}: {
-  children: ReactNode;
-}) => {
+/**
+ * 전체화면 모달을 관리하는 Provider
+ *
+ * 전역에서 전체화면 모달을 표시할 수 있도록 Context를 제공합니다.
+ * 다양한 모달 타입(taskForm, retrospectForm, dateNavigationForm)을 지원합니다.
+ */
+export function FullScreenModalProvider({ children }: { children: ReactNode }) {
   const [modalName, setModalName] = useState<ModalName>(null);
   const [modalProps, setModalProps] = useState<ModalProps>(null);
 
-  // 모달 상태에 따라 body overflow 관리
+  // 모달이 열려있을 때 body overflow 숨김
   useEffect(() => {
     if (modalName) {
       document.body.style.overflow = "hidden";
@@ -63,17 +57,18 @@ export const FullScreenModalProvider = ({
       document.body.style.overflow = "";
     }
 
-    // 컴포넌트 언마운트 시 cleanup
     return () => {
       document.body.style.overflow = "";
     };
   }, [modalName]);
 
+  // 모달 열기 함수
   const openModal = useCallback((name: ModalName, props?: ModalProps) => {
     setModalName(name);
     setModalProps(props || null);
   }, []);
 
+  // 모달 닫기 함수
   const closeModal = useCallback(() => {
     setModalName(null);
     setModalProps(null);
@@ -84,6 +79,8 @@ export const FullScreenModalProvider = ({
       value={{ modalName, modalProps, openModal, closeModal }}
     >
       {children}
+
+      {/* 전체화면 모달 렌더링 */}
       <FullScreenModalRenderer
         modalName={modalName}
         modalProps={modalProps}
@@ -91,18 +88,9 @@ export const FullScreenModalProvider = ({
       />
     </FullScreenModalContext.Provider>
   );
-};
+}
 
-export const useFullScreenModal = () => {
-  const context = useContext(FullScreenModalContext);
-  if (!context) {
-    throw new Error(
-      "useFullScreenModal must be used within a FullScreenModalProvider"
-    );
-  }
-  return context;
-};
-
+// 전체화면 모달 렌더러 컴포넌트
 const FullScreenModalRenderer = ({
   modalName,
   modalProps,
@@ -112,7 +100,7 @@ const FullScreenModalRenderer = ({
   modalProps: ModalProps;
   closeModal: () => void;
 }) => {
-  // 회고 모달용 훅
+  // 회고 모달 훅
   const { onSubmit, onUpdate, onDelete } = useRetrospectModal();
 
   return (
@@ -139,4 +127,20 @@ const FullScreenModalRenderer = ({
       )}
     </AnimatePresence>
   );
+};
+
+/**
+ * 전체화면 모달 Context를 사용하는 커스텀 훅
+ *
+ * @returns 전체화면 모달 관련 함수들
+ * @throws Error - FullScreenModalProvider 외부에서 사용할 경우
+ */
+export const useFullScreenModal = () => {
+  const context = useContext(FullScreenModalContext);
+  if (!context) {
+    throw new Error(
+      "useFullScreenModal must be used within a FullScreenModalProvider"
+    );
+  }
+  return context;
 };

@@ -3,7 +3,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
 
-// SVG 아이콘 컴포넌트들 - 인라인으로 직접 구현
 const MyDayIcon = ({
   isActive,
   className,
