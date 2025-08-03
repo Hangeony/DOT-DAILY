@@ -212,7 +212,7 @@ function LoginPageContent() {
           />
         </form>
         <div className="flex flex-col gap-3">
-          <button
+          {/* <button
             type="button"
             className="flex items-center justify-center gap-2 bg-yellow-300 hover:bg-yellow-400 rounded-full py-3 font-bold text-gray-800 shadow transition"
           >
@@ -223,7 +223,7 @@ function LoginPageContent() {
               height={24}
             />
             카카오로 로그인
-          </button>
+          </button> */}
           <button
             type="button"
             onClick={() => {

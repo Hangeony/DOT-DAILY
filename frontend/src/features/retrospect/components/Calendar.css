@@ -98,14 +98,14 @@
   /* zinc 300 */
 }
 
-.fc-daygrid-day.selected .fc-daygrid-day-number,
+.fc-daygrid-day.selected-date .fc-daygrid-day-number,
 .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
   background-color: #10b981;
   color: white;
 }
 
 /* 라벨 공통 */
-.fc-daygrid-day.selected::after,
+.fc-daygrid-day.selected-date::after,
 .fc-daygrid-day.fc-day-today::after {
   position: absolute;
   bottom: 0;
@@ -120,7 +120,7 @@
   z-index: 4;
 }
 
-.fc-daygrid-day.selected::after {
+.fc-daygrid-day.selected-date::after {
   content: "선택";
   background: #262c33;
   color: #fff;
@@ -132,9 +132,28 @@
 }
 
 /* 오늘 선택시 라벨 */
-.fc-daygrid-day.fc-day-today.selected::after {
+.fc-daygrid-day.fc-day-today.selected-date::after {
   background: #262c33;
   color: #fff;
+}
+
+/* 감정 아이콘이 있는 날짜에서도 선택 라벨이 보이도록 */
+.fc-daygrid-day[class*="emotion-"].selected-date::after,
+.fc-daygrid-day.selected-date::after {
+  content: "선택";
+  background: #262c33;
+  color: #fff;
+  z-index: 10;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  padding: 1px 0;
+  font-size: 10px;
+  text-align: center;
+  border-radius: 4px;
+  pointer-events: none;
 }
 
 [class*="emotion-"] .fc-daygrid-day-number {

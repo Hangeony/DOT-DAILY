@@ -41,7 +41,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             staleTime: 1000 * 60 * 5,
             gcTime: 1000 * 60 * 10,
             refetchOnWindowFocus: false,
+            refetchOnReconnect: false,
             retry: 1,
+            refetchInterval: false,
           },
         },
       })

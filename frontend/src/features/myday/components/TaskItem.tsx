@@ -17,8 +17,9 @@ import {
   Task,
   toggleTaskStatus,
   moveToArchive,
-  moveToRetry,
+  updateTask,
 } from "@/lib/api/tasks";
+import { updateGuestTask, deleteGuestTask } from "@/lib/api/guestTasks";
 
 import { useDateStore } from "@/store/useDateStore";
 import { useQueryClient } from "@tanstack/react-query";
@@ -114,60 +115,32 @@ const TaskItem = React.memo(function TaskItem({
   const { showConfirm } = useModal();
   const { isGuest } = useAuthStore();
 
-  // 게스트 모드용 로컬 스토리지 함수들
+  // 게스트 모드용 API 함수들
   const updateGuestTaskStatus = (taskId: string, completed: boolean) => {
-    const dateStr = selectedDate.toISOString().split("T")[0];
-    const stored = localStorage.getItem(`guest-tasks-${dateStr}`);
-    if (stored) {
-      try {
-        const tasks = JSON.parse(stored);
-        const updatedTasks = tasks.map((t: Record<string, unknown>) =>
-          t.id === taskId ? { ...t, completed } : t
-        );
-        localStorage.setItem(
-          `guest-tasks-${dateStr}`,
-          JSON.stringify(updatedTasks)
-        );
-        return true;
-      } catch {
-        return false;
-      }
+    try {
+      const updatedTask = updateGuestTask(taskId, { completed });
+      return !!updatedTask;
+    } catch {
+      return false;
     }
-    return false;
   };
 
-  const deleteGuestTask = (taskId: string) => {
-    const dateStr = selectedDate.toISOString().split("T")[0];
-    const stored = localStorage.getItem(`guest-tasks-${dateStr}`);
-    if (stored) {
-      try {
-        const tasks = JSON.parse(stored);
-        const updatedTasks = tasks.filter(
-          (t: Record<string, unknown>) => t.id !== taskId
-        );
-        localStorage.setItem(
-          `guest-tasks-${dateStr}`,
-          JSON.stringify(updatedTasks)
-        );
-        return true;
-      } catch {
-        return false;
-      }
+  const deleteGuestTaskById = (taskId: string) => {
+    try {
+      return deleteGuestTask(taskId);
+    } catch {
+      return false;
     }
-    return false;
   };
 
   const handleToggleStatus = async () => {
     if (isGuest) {
-      // 게스트 모드: 로컬 스토리지 업데이트
+      // 게스트 모드: guestTasks API 사용
       const taskId = task.id as string;
       const currentCompleted = task.completed || false;
       const newCompleted = !currentCompleted;
 
       if (updateGuestTaskStatus(taskId, newCompleted)) {
-        // 페이지 새로고침으로 상태 업데이트
-        window.location.reload();
-
         if (newCompleted) {
           setShowParticles(true);
           setTimeout(() => setShowParticles(false), 1000);
@@ -175,6 +148,9 @@ const TaskItem = React.memo(function TaskItem({
         } else {
           showToast("할 일 완료가 취소되었습니다.");
         }
+
+        // 브라우저 이벤트로 다른 컴포넌트에 변경 알림
+        window.dispatchEvent(new CustomEvent("guestTaskUpdated"));
       } else {
         showToast("상태 변경에 실패했습니다 😞");
       }
@@ -216,11 +192,13 @@ const TaskItem = React.memo(function TaskItem({
     if (!confirmed) return;
 
     if (isGuest) {
-      // 게스트 모드: 로컬 스토리지에서 삭제
+      // 게스트 모드: guestTasks API 사용
       const taskId = task.id as string;
-      if (deleteGuestTask(taskId)) {
-        window.location.reload();
+      if (deleteGuestTaskById(taskId)) {
         showToast("할 일이 삭제되었습니다 🗑️");
+
+        // 브라우저 이벤트로 다른 컴포넌트에 변경 알림
+        window.dispatchEvent(new CustomEvent("guestTaskUpdated"));
       } else {
         showToast("할 일 삭제에 실패했습니다 😞");
       }
@@ -257,7 +235,27 @@ const TaskItem = React.memo(function TaskItem({
     if (!confirmed) return;
 
     try {
-      await moveToRetry(task.id as number);
+      // 🎯 클라이언트에서 정확한 날짜 계산 (KST 기준)
+      const getKSTTomorrowDate = (currentDate: string): string => {
+        // 한국 시간대로 정확히 다음날 계산
+        const kstDate = new Date(currentDate + "T00:00:00+09:00");
+        const tomorrow = new Date(kstDate);
+        tomorrow.setDate(kstDate.getDate() + 1);
+
+        // KST 기준으로 YYYY-MM-DD 형태 반환
+        const kstOffset = 9 * 60 * 60 * 1000;
+        const tomorrowKST = new Date(tomorrow.getTime() + kstOffset);
+        return tomorrowKST.toISOString().split("T")[0];
+      };
+
+      const tomorrowDate = getKSTTomorrowDate(task.date);
+
+      // ✅ moveToRetry 대신 updateTask 사용 (클라이언트에서 정확한 날짜 계산)
+      await updateTask(task.id as number, {
+        status: "retry",
+        retryCount: (task.retryCount || 0) + 1,
+        date: tomorrowDate, // 클라이언트에서 정확히 계산한 날짜
+      });
 
       // 현재 보고 있는 날짜에서 할 일 제거
       const currentDateKey = selectedDate.toISOString().split("T")[0];
@@ -265,13 +263,9 @@ const TaskItem = React.memo(function TaskItem({
         old.filter((t) => t.id !== task.id)
       );
 
-      // 할 일의 현재 날짜 기준으로 다음날 계산해서 캐시 무효화
-      const taskCurrentDate = new Date(task.date);
-      const nextDate = new Date(taskCurrentDate);
-      nextDate.setDate(taskCurrentDate.getDate() + 1);
-      const nextDateKey = nextDate.toISOString().split("T")[0];
+      // 이동된 날짜의 캐시 무효화
       queryClient.invalidateQueries({
-        queryKey: ["tasks", nextDateKey],
+        queryKey: ["tasks", tomorrowDate],
       });
 
       showToast("할 일이 다음날로 재시도 이동되었습니다! 🔄✨");

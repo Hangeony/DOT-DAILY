@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button/Button";
 import { motion } from "framer-motion";
 import RadioButton from "@/components/ui/Radio/RadioButton";
 import { createTask, updateTask } from "@/lib/api/tasks";
+import { createGuestTask, updateGuestTask } from "@/lib/api/guestTasks";
 import { useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/components/ui/Toast/ToastProvider";
@@ -81,40 +82,35 @@ export default function TaskFormModal({
   const queryClient = useQueryClient();
   const { showToast } = useToast();
 
-  // 게스트 모드용 로컬 스토리지 함수들
-  const saveGuestTask = (taskData: {
+  // 게스트 모드용 태스크 처리 함수들
+  const handleGuestTask = (taskData: {
     title: string;
     priority: "must" | "should" | "remind";
     date: string;
   }) => {
-    const stored = localStorage.getItem("guest_tasks");
-    const existingTasks = stored ? JSON.parse(stored) : [];
-
-    const newTask = {
-      id: task
-        ? task.id
-        : `guest-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      title: taskData.title,
-      priority: taskData.priority,
-      completed: false,
-      date: taskData.date,
-      createdAt: task ? task.createdAt : new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    let updatedTasks;
-    if (task) {
-      // 수정 모드
-      updatedTasks = existingTasks.map((t: CommonTask) =>
-        t.id === task.id ? { ...t, ...newTask } : t
-      );
-    } else {
-      // 새로 생성
-      updatedTasks = [...existingTasks, newTask];
+    try {
+      if (task) {
+        // 수정 모드: updateGuestTask API 사용
+        const updatedTask = updateGuestTask(task.id as string, {
+          title: taskData.title,
+          priority: taskData.priority,
+          date: taskData.date,
+        });
+        return !!updatedTask;
+      } else {
+        // 생성 모드: createGuestTask API 사용
+        const newTask = createGuestTask({
+          title: taskData.title,
+          priority: taskData.priority,
+          date: taskData.date,
+          completed: false,
+        });
+        return !!newTask;
+      }
+    } catch (error) {
+      console.error("Guest task operation failed:", error);
+      return false;
     }
-
-    localStorage.setItem("guest_tasks", JSON.stringify(updatedTasks));
-    return true;
   };
 
   const handleSubmit = async () => {
@@ -133,8 +129,8 @@ export default function TaskFormModal({
       };
 
       if (isGuest) {
-        // 게스트 모드: 로컬 스토리지에 저장
-        if (saveGuestTask(taskData)) {
+        // 게스트 모드: guestTasks API 사용
+        if (handleGuestTask(taskData)) {
           showToast(
             task
               ? "할 일이 수정되었습니다! ✏️"
@@ -177,7 +173,7 @@ export default function TaskFormModal({
 
   return (
     <motion.div
-      className="h-full max-h-screen flex flex-col bg-white"
+      className="h-screen max-h-screen flex flex-col bg-white fixed inset-0 z-50 max-w-md mx-auto"
       initial={{ y: "100%" }}
       animate={{ y: 0 }}
       exit={{ y: "100%" }}

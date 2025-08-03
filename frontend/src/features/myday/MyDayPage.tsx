@@ -9,6 +9,7 @@ import {
 } from "@/features/myday/components";
 import { useDateStore } from "@/store/useDateStore";
 import { getTasksByDate, updateTask } from "@/lib/api/tasks";
+import { getGuestTasksByDate, updateGuestTask } from "@/lib/api/guestTasks";
 import FullScreenModal from "@/components/ui/Modal/components/FullScreenModal";
 import { useTaskCompletion } from "@/hooks/useTaskCompletion";
 import { useState, useMemo, useCallback, useEffect } from "react";
@@ -16,13 +17,11 @@ import dynamic from "next/dynamic";
 import { DropResult } from "@hello-pangea/dnd";
 import useAuthStore from "@/store/useAuthStore";
 import { CommonTask } from "@/types";
-
-// DragDrop을 완전히 동적 로딩으로 분리 (성능 최적화)
 const DragDropWrapper = dynamic(
   () => import("@/components/ui/DragDrop/DragDropWrapper"),
   {
     ssr: false,
-    loading: () => <div className="min-h-screen" />, // 최소한의 DOM 노드 제공
+    loading: () => <div className="min-h-screen" />,
   }
 );
 
@@ -48,48 +47,38 @@ const CelebrationEffect = dynamic(
   }
 );
 
-// 게스트 모드용 로컬 스토리지 커스텀 훅
-interface GuestTask {
-  id: string;
-  title: string;
-  priority: "must" | "should" | "remind";
-  completed: boolean;
-  date: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
+// 게스트 모드용 통합 API 커스텀 훅
 function useGuestTasks(date: Date) {
-  const [guestTasks, setGuestTasks] = useState<GuestTask[]>([]);
+  const [guestTasks, setGuestTasks] = useState<CommonTask[]>([]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const dateStr = date.toISOString().split("T")[0];
-    const stored = localStorage.getItem(`guest-tasks-${dateStr}`);
-    if (stored) {
-      try {
-        setGuestTasks(JSON.parse(stored));
-      } catch {
-        setGuestTasks([]);
-      }
-    } else {
-      setGuestTasks([]);
-    }
+    // guestTasks.ts API 사용하여 해당 날짜의 태스크만 가져오기
+    const tasksForDate = getGuestTasksByDate(date);
+    setGuestTasks(tasksForDate);
+
+    // 게스트 태스크 업데이트 이벤트 리스너 추가
+    const handleGuestTaskUpdate = () => {
+      const updatedTasks = getGuestTasksByDate(date);
+      setGuestTasks(updatedTasks);
+    };
+
+    window.addEventListener("guestTaskUpdated", handleGuestTaskUpdate);
+
+    return () => {
+      window.removeEventListener("guestTaskUpdated", handleGuestTaskUpdate);
+    };
   }, [date]);
 
-  const updateGuestTasks = useCallback(
-    (newTasks: GuestTask[]) => {
-      if (typeof window === "undefined") return;
+  const refreshGuestTasks = useCallback(() => {
+    if (typeof window === "undefined") return;
 
-      const dateStr = date.toISOString().split("T")[0];
-      localStorage.setItem(`guest-tasks-${dateStr}`, JSON.stringify(newTasks));
-      setGuestTasks(newTasks);
-    },
-    [date]
-  );
+    const tasksForDate = getGuestTasksByDate(date);
+    setGuestTasks(tasksForDate);
+  }, [date]);
 
-  return { guestTasks, updateGuestTasks };
+  return { guestTasks, refreshGuestTasks };
 }
 
 export default function MyDayPage() {
@@ -110,36 +99,36 @@ export default function MyDayPage() {
     staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
   });
 
-  // 데이터 프리페칭: 다음 날짜 데이터 미리 로드
-  const nextDate = useMemo(() => {
-    const next = new Date(selectedDate);
-    next.setDate(next.getDate() + 1);
-    return next;
-  }, [selectedDate]);
+  // 🚀 성능 최적화: 프리페칭 변수 제거 (사용하지 않음)
+  // const nextDate = useMemo(() => {
+  //   const next = new Date(selectedDate);
+  //   next.setDate(next.getDate() + 1);
+  //   return next;
+  // }, [selectedDate]);
 
-  const prevDate = useMemo(() => {
-    const prev = new Date(selectedDate);
-    prev.setDate(prev.getDate() - 1);
-    return prev;
-  }, [selectedDate]);
+  // const prevDate = useMemo(() => {
+  //   const prev = new Date(selectedDate);
+  //   prev.setDate(prev.getDate() - 1);
+  //   return prev;
+  // }, [selectedDate]);
 
-  // 다음/이전 날짜 데이터 프리페칭
-  useQuery({
-    queryKey: ["tasks", nextDate.toISOString().split("T")[0]],
-    queryFn: () => getTasksByDate(nextDate),
-    enabled: isInitialized && !isGuest && typeof window !== "undefined",
-    staleTime: 1000 * 60 * 10, // 10분간 fresh 상태 유지 (프리페칭이므로 더 길게)
-  });
+  // 🚀 성능 최적화: 프리페칭 비활성화 (필요시에만 로드)
+  // useQuery({
+  //   queryKey: ["tasks", nextDate.toISOString().split("T")[0]],
+  //   queryFn: () => getTasksByDate(nextDate),
+  //   enabled: isInitialized && !isGuest && typeof window !== "undefined",
+  //   staleTime: 1000 * 60 * 10,
+  // });
 
-  useQuery({
-    queryKey: ["tasks", prevDate.toISOString().split("T")[0]],
-    queryFn: () => getTasksByDate(prevDate),
-    enabled: isInitialized && !isGuest && typeof window !== "undefined",
-    staleTime: 1000 * 60 * 10, // 10분간 fresh 상태 유지
-  });
+  // useQuery({
+  //   queryKey: ["tasks", prevDate.toISOString().split("T")[0]],
+  //   queryFn: () => getTasksByDate(prevDate),
+  //   enabled: isInitialized && !isGuest && typeof window !== "undefined",
+  //   staleTime: 1000 * 60 * 10,
+  // });
 
   // 게스트 모드용 상태
-  const { guestTasks, updateGuestTasks } = useGuestTasks(selectedDate);
+  const { guestTasks, refreshGuestTasks } = useGuestTasks(selectedDate);
 
   // 모달 상태
   const [open, setOpen] = useState(false);
@@ -155,17 +144,9 @@ export default function MyDayPage() {
 
   // 게스트 모드 성공 콜백
   const handleGuestTaskSuccess = useCallback(() => {
-    const dateStr = selectedDate.toISOString().split("T")[0];
-    const stored = localStorage.getItem(`guest-tasks-${dateStr}`);
-    if (stored) {
-      try {
-        const updatedTasks = JSON.parse(stored);
-        updateGuestTasks(updatedTasks);
-      } catch {
-        // 게스트 태스크 업데이트 실패
-      }
-    }
-  }, [selectedDate, updateGuestTasks]);
+    // guestTasks.ts API를 사용하여 최신 데이터 새로고침
+    refreshGuestTasks();
+  }, [refreshGuestTasks]);
 
   // 태스크 그룹별 분류
   const { mustTasks, shouldTasks, remindTasks } = useMemo(() => {
@@ -247,23 +228,17 @@ export default function MyDayPage() {
       };
       destArr.splice(destination.index, 0, updated);
 
-      // 게스트 모드일 때는 로컬 스토리지 업데이트
+      // 게스트 모드일 때는 guestTasks API 사용
       if (isGuest) {
-        const allTasks = [...sourceArr, ...destArr];
-        const guestTasksToSave = allTasks.map((task) => {
-          // 타입 가드로 안전하게 처리
-          const isGuestTask = "completed" in task;
-          return {
-            id: task.id as string,
-            title: task.title,
-            priority: task.priority as "must" | "should" | "remind",
-            completed: isGuestTask ? task.completed : false,
-            date: task.date,
-            createdAt: task.createdAt,
-            updatedAt: task.updatedAt || new Date().toISOString(),
-          };
+        // 우선순위가 변경된 태스크를 updateGuestTask API로 업데이트
+        const updatedTask = updateGuestTask(updated.id as string, {
+          priority: newPriority as "must" | "should" | "remind",
         });
-        updateGuestTasks(guestTasksToSave);
+
+        if (updatedTask) {
+          // 성공적으로 업데이트되면 UI 새로고침
+          refreshGuestTasks();
+        }
       } else {
         // 서버에 priority 변경 동기화
         if (typeof updated.id === "number") {

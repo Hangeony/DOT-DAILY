@@ -54,8 +54,8 @@ export default function RetrospectPage() {
 
           const data = await getDailyEmotionMemos(year, month);
           setEmotionMemoList(data);
-        } catch {
-          // 회고 데이터 로딩 실패
+        } catch (error) {
+          console.error("회고 데이터 로딩 실패:", error);
         }
       }
     };

@@ -76,7 +76,7 @@ export default function RetrospectModal({
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
       transition={{ type: "tween", duration: 0.3 }}
-      className="h-full max-h-screen flex flex-col bg-white"
+      className="h-screen max-h-screen flex flex-col bg-white fixed inset-0 z-50 max-w-md mx-auto"
     >
       {/* 헤더 - 고정 */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 py-4 border-b border-gray-100 bg-white">

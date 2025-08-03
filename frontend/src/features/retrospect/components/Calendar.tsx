@@ -68,6 +68,69 @@ const Calendar = ({ onDateModalOpen }: CalendarProps) => {
     return dayCell.dayNumberText.replace("일", "");
   }, []);
 
+  // 라벨 생성 헬퍼 함수
+  const createLabel = useCallback(
+    (text: string, className: string, isToday: boolean) => {
+      const label = document.createElement("div");
+      label.className = className;
+      label.textContent = text;
+      label.style.cssText = `
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      background: ${isToday ? "#d1fae5" : "#262c33"};
+      color: ${isToday ? "#000" : "#fff"};
+      padding: 1px 0;
+      font-size: 10px;
+      text-align: center;
+      border-radius: 4px;
+      width: 32px;
+      z-index: 10;
+      pointer-events: none;
+    `;
+      return label;
+    },
+    []
+  );
+
+  const onDayCellDidMount = useCallback(
+    (dayCell: DayCellContentArg) => {
+      const dateString = formatDateToString(dayCell.date);
+      const emotion = emotionByDateMap[dateString];
+      const isSelected =
+        formatDateToString(dayCell.date) === formatDateToString(selectedDate);
+      const isToday =
+        formatDateToString(dayCell.date) === formatDateToString(new Date());
+
+      if (emotion) {
+        dayCell.el.classList.add(`emotion-${emotion}`);
+      }
+
+      // 기존 라벨들 모두 제거
+      const existingLabels = dayCell.el.querySelectorAll(
+        ".selected-label, .today-label"
+      );
+      existingLabels.forEach((label: Element) => label.remove());
+
+      // 라벨 추가 로직
+      if (isToday) {
+        // 오늘 날짜인 경우 항상 "오늘" 라벨 표시 (선택 여부와 관계없이)
+        if (isSelected) {
+          dayCell.el.classList.add("selected-date");
+        }
+        const label = createLabel("오늘", "today-label", true);
+        dayCell.el.appendChild(label);
+      } else if (isSelected) {
+        // 선택된 날짜이지만 오늘이 아닌 경우 "선택" 라벨 표시
+        dayCell.el.classList.add("selected-date");
+        const label = createLabel("선택", "selected-label", false);
+        dayCell.el.appendChild(label);
+      }
+    },
+    [emotionByDateMap, selectedDate, createLabel]
+  );
+
   useEffect(() => {
     const fetchEmotionMemos = async () => {
       try {
@@ -76,8 +139,8 @@ const Calendar = ({ onDateModalOpen }: CalendarProps) => {
           selectedYearMonth.month
         );
         setEmotionMemoList(memos);
-      } catch {
-        // 감정 메모 조회 실패
+      } catch (error) {
+        console.error("감정 메모 조회 실패:", error);
       }
     };
 
@@ -115,11 +178,12 @@ const Calendar = ({ onDateModalOpen }: CalendarProps) => {
           plugins={[dayGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
           locale="ko"
-          height={320}
+          height="auto"
           headerToolbar={false}
           dateClick={onDateClick}
           dayCellClassNames={onDayCellClassNames}
           dayCellContent={onDayCellContent}
+          dayCellDidMount={onDayCellDidMount}
           showNonCurrentDates={false}
           fixedWeekCount={false}
           // 성능 최적화 옵션들
