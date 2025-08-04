@@ -17,6 +17,7 @@ import dynamic from "next/dynamic";
 import { DropResult } from "@hello-pangea/dnd";
 import useAuthStore from "@/store/useAuthStore";
 import { CommonTask } from "@/types";
+// ⚡ 성능 최적화: Dynamic imports 개선
 const DragDropWrapper = dynamic(
   () => import("@/components/ui/DragDrop/DragDropWrapper"),
   {
@@ -34,7 +35,7 @@ const TaskGroup = dynamic(
     ssr: false,
     loading: () => (
       <div className="h-32 bg-gray-100 rounded-lg animate-pulse" />
-    ), // 스켈레톤 제공
+    ),
   }
 );
 
@@ -43,7 +44,7 @@ const CelebrationEffect = dynamic(
   () => import("@/components/ui/CelebrationEffect/CelebrationEffect"),
   {
     ssr: false,
-    loading: () => <div />, // 빈 div로 최소한의 DOM 노드 제공
+    loading: () => <div />,
   }
 );
 
@@ -82,9 +83,33 @@ function useGuestTasks(date: Date) {
 }
 
 export default function MyDayPage() {
-  const { selectedDate } = useDateStore();
+  const { selectedDate, setSelectedDate } = useDateStore();
   const { isGuest, isInitialized } = useAuthStore();
   const queryClient = useQueryClient();
+
+  // URL 파라미터에서 날짜 확인 및 설정
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const dateParam = urlParams.get("date");
+
+    if (dateParam) {
+      try {
+        // 한국 시간 기준으로 날짜 파싱
+        const [year, month, day] = dateParam.split("-").map(Number);
+        const newDate = new Date(year, month - 1, day); // month는 0-based
+        if (!isNaN(newDate.getTime())) {
+          setSelectedDate(newDate);
+          // URL에서 파라미터 제거
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, "", newUrl);
+        }
+      } catch (error) {
+        console.error("Invalid date parameter:", error);
+      }
+    }
+  }, [setSelectedDate]);
 
   // 현재 날짜 데이터 로드
   const {

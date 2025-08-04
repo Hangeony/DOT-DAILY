@@ -85,36 +85,45 @@ object {
   }
 }
 
-/* 애니메이션 최적화 - GPU 가속 사용 */
-.will-change-transform {
-  will-change: transform;
+/* iOS Safari FAB 위치 고정 */
+@supports (-webkit-touch-callout: none) {
+  .ios-fab-fix {
+    position: fixed !important;
+    bottom: 100px !important;
+    z-index: 40 !important;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
 }
 
-.will-change-opacity {
-  will-change: opacity;
+/* 모달이 열릴 때 Header/Footer 숨기기 */
+.modal-open {
+  overflow: hidden;
 }
 
-.will-change-auto {
-  will-change: auto;
+.modal-open header,
+.modal-open footer {
+  display: none;
 }
 
-/* 고성능 애니메이션을 위한 transform 최적화 */
-.transform-gpu {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  perspective: 1000;
+/* iOS Safari에서 모달 열릴 때 추가 처리 */
+@supports (-webkit-touch-callout: none) {
+  .modal-open {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+  }
 }
 
-/* 리페인트 최적화 */
-.contain-layout {
-  contain: layout style paint;
+/* Safe Area 관련 CSS 변수 */
+:root {
+  --safe-area-bottom: env(safe-area-inset-bottom);
+  --safe-area-top: env(safe-area-inset-top);
+  --safe-area-left: env(safe-area-inset-left);
+  --safe-area-right: env(safe-area-inset-right);
 }
 
-.contain-strict {
-  contain: strict;
-}
-
-/* 폰트 로딩 최적화 */
-@font-face {
-  font-display: swap;
+/* 모달 푸터 Safe Area 스타일 */
+.modal-footer-safe {
+  padding-bottom: calc(1rem + var(--safe-area-bottom) + 0.5rem);
 }

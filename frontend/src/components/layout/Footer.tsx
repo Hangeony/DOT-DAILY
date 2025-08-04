@@ -94,7 +94,7 @@ export function Footer() {
   const pathname = usePathname();
 
   return (
-    <footer className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-50 bg-white border-t border-border-default">
+    <footer className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-30 bg-white border-t border-border-default">
       <nav className="h-20">
         <ul className="flex justify-around items-center h-full">
           {tabs.map((tab) => {

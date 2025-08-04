@@ -8,6 +8,7 @@ import { useFullScreenModal } from "@/components/ui/Modal/providers/FullScreenMo
 import MobileLayout from "@/components/layout/MobileLayout";
 import { Button } from "@/components/ui/Button/Button";
 import useAuthStore from "@/store/useAuthStore";
+import { useDateStore } from "@/store/useDateStore";
 
 import dynamic from "next/dynamic";
 import { Lock } from "lucide-react";
@@ -42,6 +43,7 @@ export default function RetrospectPage() {
   const router = useRouter();
   const { openModal } = useFullScreenModal();
   const { isGuest, isAuthenticated } = useAuthStore();
+  const { selectedDate } = useDateStore();
 
   // 회고 데이터 초기 로딩
   useEffect(() => {
@@ -230,7 +232,16 @@ export default function RetrospectPage() {
             label="선택한 날짜로 이동"
             variant="outline"
             className="flex-1 max-w-[160px] text-sm py-2 shadow-lg"
-            onClick={() => router.push("/")}
+            onClick={() => {
+              // 성능 최적화: 템플릿 리터럴로 한 번에 처리
+              const dateStr = `${selectedDate.getFullYear()}-${String(
+                selectedDate.getMonth() + 1
+              ).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(
+                2,
+                "0"
+              )}`;
+              router.push(`/?date=${dateStr}`);
+            }}
           />
           <Button
             label="오늘 회고 작성하기"

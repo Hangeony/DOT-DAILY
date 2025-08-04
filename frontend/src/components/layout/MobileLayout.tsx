@@ -23,7 +23,7 @@ export default function MobileLayout({
       <main className="flex-1 overflow-y-auto pb-20 min-h-0">{children}</main>
       <Footer />
       {showFab && (
-        <div className="fixed bottom-[100px] z-50 max-w-md mx-auto left-0 right-0">
+        <div className="fixed bottom-[100px] z-40 max-w-md mx-auto left-0 right-0 ios-fab-fix">
           <div className="flex justify-end pr-4">
             <Fab aria-label="새로운 할 일 추가" onClick={onFabClick}>
               <Plus className="w-6 h-6" />

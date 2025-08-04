@@ -4,10 +4,10 @@ import "./globals.css";
 import Providers from "./providers";
 
 const pretendard = localFont({
-  src: "../../public/fonts/Pretendard/PretendardVariable.woff2",
+  src: "./fonts/Pretendard/PretendardVariable.woff2",
   variable: "--font-pretendard",
   display: "swap",
-  preload: false,
+  preload: true, // 중요 폰트는 preload
   fallback: [
     "-apple-system",
     "BlinkMacSystemFont",
@@ -20,10 +20,10 @@ const pretendard = localFont({
 });
 
 const kkonghae = localFont({
-  src: "../../public/fonts/kkonghae.woff2",
+  src: "./fonts/kkonghae.woff2",
   variable: "--font-kkonghae",
   display: "swap",
-  preload: false,
+  preload: true, // 🔥 LCP 요소이므로 preload 필수
   fallback: ["Cafe24Ssurround", "KCC-Ganpan", "cursive", "fantasy"],
 });
 
@@ -77,6 +77,10 @@ export default function RootLayout({
               .mx-auto { margin-left: auto; margin-right: auto; }
               .min-h-screen { min-height: 100vh; }
               .bg-surface-base { background-color: #f8fafc; }
+              /* 성능 최적화 */
+              * { box-sizing: border-box; }
+              html { scroll-behavior: smooth; }
+              img { max-width: 100%; height: auto; }
             `,
           }}
         />

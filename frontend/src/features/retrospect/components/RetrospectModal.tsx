@@ -76,7 +76,7 @@ export default function RetrospectModal({
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
       transition={{ type: "tween", duration: 0.3 }}
-      className="h-screen max-h-screen flex flex-col bg-white fixed inset-0 z-50 max-w-md mx-auto"
+      className="h-[100dvh] flex flex-col bg-white fixed inset-0 z-50 max-w-md mx-auto"
     >
       {/* 헤더 - 고정 */}
       <div className="flex-shrink-0 flex items-center justify-between px-4 py-4 border-b border-gray-100 bg-white">
@@ -125,7 +125,7 @@ export default function RetrospectModal({
       </div>
 
       {/* 푸터 - 고정 */}
-      <div className="flex-shrink-0 px-4 py-4 bg-white border-t border-gray-100 shadow-lg safe-area-inset-bottom">
+      <div className="flex-shrink-0 px-4 py-4 bg-white border-t border-gray-100 shadow-lg modal-footer-safe">
         <Button
           label={isEditMode ? "회고 수정하기" : "오늘 회고 등록하기"}
           size="lg"

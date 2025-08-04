@@ -3,7 +3,7 @@
 import { Input } from "@/components/ui/Input/Input";
 import type { Size } from "@/components/ui/Input/Input";
 import { DatePicker } from "@/components/ui/Input/DatePicker";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button/Button";
 import { motion } from "framer-motion";
 import RadioButton from "@/components/ui/Radio/RadioButton";
@@ -66,6 +66,13 @@ export default function TaskFormModal({
   isGuest = false,
   onSuccess,
 }: TaskFormModalProps) {
+  // 모달이 열릴 때 body에 클래스 추가
+  useEffect(() => {
+    document.body.classList.add("modal-open");
+    return () => {
+      document.body.classList.remove("modal-open");
+    };
+  }, []);
   const [label, setLabel] = useState(task ? task.title : "");
   const [priority, setPriority] = useState<"must" | "should" | "remind">(
     task ? task.priority : defaultPriority
@@ -173,7 +180,7 @@ export default function TaskFormModal({
 
   return (
     <motion.div
-      className="h-screen max-h-screen flex flex-col bg-white fixed inset-0 z-50 max-w-md mx-auto"
+      className="h-[100dvh] flex flex-col bg-white fixed inset-0 z-50 max-w-md mx-auto"
       initial={{ y: "100%" }}
       animate={{ y: 0 }}
       exit={{ y: "100%" }}
@@ -292,7 +299,7 @@ export default function TaskFormModal({
       </div>
 
       {/* 푸터 - 고정 */}
-      <div className="flex-shrink-0 px-4 py-4 bg-white border-t border-gray-100 shadow-lg safe-area-inset-bottom">
+      <div className="flex-shrink-0 px-4 py-4 bg-white border-t border-gray-100 shadow-lg modal-footer-safe">
         <Button
           size="lg"
           variant="primary"

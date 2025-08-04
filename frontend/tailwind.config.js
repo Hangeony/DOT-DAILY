@@ -1,17 +1,17 @@
-import colors from 'tailwindcss/colors';
+import colors from "tailwindcss/colors";
 
 const config = {
-  content: ['./src/**/*.{js,ts,jsx,tsx}', './.storybook/**/*.{js,ts,jsx,tsx}'],
+  content: ["./src/**/*.{js,ts,jsx,tsx}", "./.storybook/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-pretendard)', 'sans-serif'],
-        kkonghae: ['var(--font-kkonghae)', 'cursive'],
+        sans: ["var(--font-pretendard)", "sans-serif"],
+        kkonghae: ["var(--font-kkonghae)", "cursive"],
       },
       fontWeight: {
-        normal: '400',
-        medium: '500',
-        bold: '700',
+        normal: "400",
+        medium: "500",
+        bold: "700",
       },
       colors: {
         brand: {
@@ -38,7 +38,7 @@ const config = {
           inactive: colors.zinc[300],
         },
         surface: {
-          base: '#f8fafc', // 전체 배경
+          base: "#f8fafc", // 전체 배경
           card: colors.white, // 카드 배경
           input: colors.gray[50], // 입력창 배경
           popup: colors.white, // 팝업용 배경
@@ -68,7 +68,25 @@ const config = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    function ({ addUtilities }) {
+      const newUtilities = {
+        ".pb-safe": {
+          paddingBottom: "env(safe-area-inset-bottom)",
+        },
+        ".pt-safe": {
+          paddingTop: "env(safe-area-inset-top)",
+        },
+        ".pl-safe": {
+          paddingLeft: "env(safe-area-inset-left)",
+        },
+        ".pr-safe": {
+          paddingRight: "env(safe-area-inset-right)",
+        },
+      };
+      addUtilities(newUtilities);
+    },
+  ],
 };
 
 export default config;

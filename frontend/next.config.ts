@@ -7,10 +7,14 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 const nextConfig: NextConfig = {
   /* config options here */
 
-  // 성능 최적화 설정 - 단순화
+  // 성능 최적화 설정
   experimental: {
-    optimizeCss: true, // CSS 최적화만 유지
+    optimizeCss: true, // CSS 최적화
+    optimizePackageImports: ["framer-motion", "@tanstack/react-query"], // 패키지 최적화
   },
+
+  // 성능 최적화
+  poweredByHeader: false, // X-Powered-By 헤더 제거
 
   // Webpack 최적화 설정 - 단순화
   webpack: (config, { dev, isServer }) => {

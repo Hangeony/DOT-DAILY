@@ -1,1 +1,6 @@
-<svg fill="none" viewBox="0 0 30 30"><circle cx="15" cy="15" r="15" fill="#ececee"/><circle cx="9.5" cy="11.5" r="1.5" fill="#7f7f87"/><circle cx="20.5" cy="11.5" r="1.5" fill="#7f7f87"/><path stroke="#7f7f87" stroke-linecap="round" d="M19 18h-8"/></svg>
+<svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle cx="15" cy="15" r="15" fill="#ECECEE"/>
+<circle cx="9.5" cy="11.5" r="1.5" fill="#7F7F87"/>
+<circle cx="20.5" cy="11.5" r="1.5" fill="#7F7F87"/>
+<path d="M19 18H11" stroke="#7F7F87" stroke-linecap="round"/>
+</svg>

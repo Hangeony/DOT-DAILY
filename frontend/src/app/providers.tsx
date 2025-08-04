@@ -38,12 +38,21 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 1000 * 60 * 5,
-            gcTime: 1000 * 60 * 10,
+            // ⚡ 성능 최적화: 기본 설정 단순화
+            staleTime: 1000 * 60 * 10, // 10분으로 증가
+            gcTime: 1000 * 60 * 30, // 30분으로 증가
             refetchOnWindowFocus: false,
             refetchOnReconnect: false,
+            refetchOnMount: false,
             retry: 1,
             refetchInterval: false,
+            // 추가 최적화
+            networkMode: "online", // 오프라인 시 재시도 방지
+          },
+          mutations: {
+            retry: 1,
+            retryDelay: 1000,
+            networkMode: "online",
           },
         },
       })

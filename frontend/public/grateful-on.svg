@@ -1,1 +1,8 @@
-<svg fill="none" viewBox="0 0 30 30"><circle cx="15" cy="15" r="15" fill="#ffa2a4"/><path stroke="#cc5052" stroke-linecap="round" d="M10 17s1.818 3 5 3 5-3 5-3"/><circle cx="7" cy="15" r="2" fill="#ffe0e1"/><circle cx="23" cy="15" r="2" fill="#ffe0e1"/><path stroke="#cc5052" stroke-linecap="round" d="M7 11s.727 1 2 1 2-1 2-1m8 0s.727 1 2 1 2-1 2-1"/></svg>
+<svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+<circle cx="15" cy="15" r="15" fill="#FFA2A4"/>
+<path d="M10 17C10 17 11.8182 20 15 20C18.1818 20 20 17 20 17" stroke="#CC5052" stroke-linecap="round"/>
+<circle cx="7" cy="15" r="2" fill="#FFE0E1"/>
+<circle cx="23" cy="15" r="2" fill="#FFE0E1"/>
+<path d="M7 11C7 11 7.72727 12 9 12C10.2727 12 11 11 11 11" stroke="#CC5052" stroke-linecap="round"/>
+<path d="M19 11C19 11 19.7273 12 21 12C22.2727 12 23 11 23 11" stroke="#CC5052" stroke-linecap="round"/>
+</svg>

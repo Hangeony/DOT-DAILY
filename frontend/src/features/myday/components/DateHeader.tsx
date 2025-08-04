@@ -18,13 +18,21 @@ const DateHeader = React.memo(() => {
   // 7개 날짜 배열 생성을 메모이제이션
   const dates = useMemo(() => {
     const arr = [];
+    // 항상 오늘 날짜를 기준으로 생성
+    const today = new Date();
+    const koreaTime = new Date(
+      today.toLocaleString("en-US", { timeZone: "Asia/Seoul" })
+    );
+    // 시간을 00:00:00으로 설정하여 날짜만 비교하도록 함
+    koreaTime.setHours(0, 0, 0, 0);
+
     for (let i = -3; i <= 3; i++) {
-      const d = new Date(selectedDate);
-      d.setDate(selectedDate.getDate() + i);
+      const d = new Date(koreaTime);
+      d.setDate(koreaTime.getDate() + i);
       arr.push(d);
     }
     return arr;
-  }, [selectedDate]);
+  }, []); // selectedDate 의존성 제거
 
   const x = useMotionValue(0);
   const controls = useAnimation();
@@ -71,7 +79,13 @@ const DateHeader = React.memo(() => {
       >
         {dates.map((date, idx) => {
           const isCenter = idx === centerIndex;
-          const isToday = isSameDay(date, new Date());
+          // 한국 시간 기준으로 오늘 날짜와 비교
+          const today = new Date();
+          const koreaToday = new Date(
+            today.toLocaleString("en-US", { timeZone: "Asia/Seoul" })
+          );
+          koreaToday.setHours(0, 0, 0, 0);
+          const isToday = isSameDay(date, koreaToday);
 
           return (
             <div
