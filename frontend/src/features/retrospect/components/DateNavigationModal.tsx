@@ -1,5 +1,4 @@
 "use client";
-
 import { useRetrospectStore } from "@/store/useRestrospectStore";
 import { useState } from "react";
 import Image from "next/image";
@@ -27,7 +26,7 @@ export default function DateNavigationModal({
   };
 
   return (
-    <div>
+    <div className="pb-safe">
       <div className="flex items-center justify-between pb-4 border-b border-gray-100">
         <h2 className="text-lg font-semibold">월 선택</h2>
         <button
@@ -57,9 +56,7 @@ export default function DateNavigationModal({
             style={{ width: "24px", height: "24px" }}
           />
         </button>
-
         <div className="text-xl font-bold">{selectedYear}년</div>
-
         <button
           onClick={onNextYear}
           className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100"

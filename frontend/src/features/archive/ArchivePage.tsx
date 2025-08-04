@@ -88,19 +88,32 @@ export default function ArchivePage() {
       showToast("보류함 할 일 삭제에 실패했습니다 😞");
     }
   };
-
   const handleMoveToToday = async (id: string) => {
     try {
       await moveToTodayFromArchive(Number(id));
-      const todayKey = selectedDate.toISOString().split("T")[0];
-      // 1. 보류함 캐시에서 즉시 제거 (optimistic)
+
+      // 🔥 수정: 일관된 날짜 키 사용
+      const todayKey = selectedDate.toLocaleDateString("en-CA");
+
+      // 1. 보관함 캐시에서 즉시 제거 (optimistic)
       queryClient.setQueryData(["archiveTasks"], (old: ArchiveTask[] = []) =>
         old.filter((task) => String(task.id) !== id)
       );
-      // 2. MyDay만 invalidate (archive는 setQueryData로 이미 반영됨)
+
+      // 2. 오늘 할 일 캐시 무효화 및 리페치 (바로 반영되도록)
       await queryClient.invalidateQueries({ queryKey: ["tasks", todayKey] });
+      await queryClient.refetchQueries({ queryKey: ["tasks", todayKey] });
+
+      // 3. 보관함 캐시도 서버와 동기화
+      await queryClient.invalidateQueries({ queryKey: ["archiveTasks"] });
+
       showToast("오늘 할 일로 이동했습니다 📅");
-    } catch {
+    } catch (error) {
+      console.error("오늘 할 일로 이동 실패:", error);
+
+      // 실패 시 캐시 롤백
+      queryClient.invalidateQueries({ queryKey: ["archiveTasks"] });
+
       showToast("오늘 할 일로 이동에 실패했습니다 😞");
     }
   };

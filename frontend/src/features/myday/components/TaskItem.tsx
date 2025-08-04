@@ -192,12 +192,10 @@ const TaskItem = React.memo(function TaskItem({
     if (!confirmed) return;
 
     if (isGuest) {
-      // 게스트 모드: guestTasks API 사용
+      // 게스트 모드는 그대로 유지
       const taskId = task.id as string;
       if (deleteGuestTaskById(taskId)) {
         showToast("할 일이 삭제되었습니다 🗑️");
-
-        // 브라우저 이벤트로 다른 컴포넌트에 변경 알림
         window.dispatchEvent(new CustomEvent("guestTaskUpdated"));
       } else {
         showToast("할 일 삭제에 실패했습니다 😞");
@@ -205,18 +203,28 @@ const TaskItem = React.memo(function TaskItem({
       return;
     }
 
-    // 인증된 사용자: 서버 API 사용
+    // 🔥 인증된 사용자 부분만 수정
     try {
       await deleteTask(task.id as number);
 
-      const dateKey = selectedDate.toISOString().split("T")[0];
+      const dateKey = selectedDate.toLocaleDateString("en-CA");
+
+      // 즉시 UI에서 제거 (Optimistic Update)
       queryClient.setQueryData(["tasks", dateKey], (old: Task[]) => {
         return old?.filter((t) => t.id !== task.id) || [];
       });
 
+      // 서버와 동기화
+      await queryClient.invalidateQueries({ queryKey: ["tasks", dateKey] });
+
       showToast("할 일이 삭제되었습니다 🗑️");
-    } catch {
-      // 삭제 실패
+    } catch (error) {
+      console.error("삭제 실패:", error);
+
+      // 실패 시 캐시 새로고침으로 롤백
+      const dateKey = selectedDate.toLocaleDateString("en-CA");
+      queryClient.invalidateQueries({ queryKey: ["tasks", dateKey] });
+
       showToast("할 일 삭제에 실패했습니다 😞");
     }
   };
@@ -242,10 +250,8 @@ const TaskItem = React.memo(function TaskItem({
         const tomorrow = new Date(kstDate);
         tomorrow.setDate(kstDate.getDate() + 1);
 
-        // KST 기준으로 YYYY-MM-DD 형태 반환
-        const kstOffset = 9 * 60 * 60 * 1000;
-        const tomorrowKST = new Date(tomorrow.getTime() + kstOffset);
-        return tomorrowKST.toISOString().split("T")[0];
+        // 🔥 수정: toLocaleDateString 사용하여 일관성 유지
+        return tomorrow.toLocaleDateString("en-CA");
       };
 
       const tomorrowDate = getKSTTomorrowDate(task.date);
@@ -254,23 +260,35 @@ const TaskItem = React.memo(function TaskItem({
       await updateTask(task.id as number, {
         status: "retry",
         retryCount: (task.retryCount || 0) + 1,
-        date: tomorrowDate, // 클라이언트에서 정확히 계산한 날짜
+        date: tomorrowDate,
       });
 
-      // 현재 보고 있는 날짜에서 할 일 제거
-      const currentDateKey = selectedDate.toISOString().split("T")[0];
+      // 🔥 수정: 일관된 날짜 키 사용
+      const currentDateKey = selectedDate.toLocaleDateString("en-CA");
+
+      // 1. 현재 날짜에서 즉시 제거 (Optimistic Update)
       queryClient.setQueryData(["tasks", currentDateKey], (old: Task[] = []) =>
         old.filter((t) => t.id !== task.id)
       );
 
-      // 이동된 날짜의 캐시 무효화
-      queryClient.invalidateQueries({
+      // 2. 현재 날짜 캐시 무효화
+      await queryClient.invalidateQueries({
+        queryKey: ["tasks", currentDateKey],
+      });
+
+      // 3. 이동된 날짜의 캐시 무효화
+      await queryClient.invalidateQueries({
         queryKey: ["tasks", tomorrowDate],
       });
 
       showToast("할 일이 다음날로 재시도 이동되었습니다! 🔄✨");
-    } catch {
-      // 재시도 이동 실패
+    } catch (error) {
+      console.error("재시도 이동 실패:", error);
+
+      // 실패 시 현재 날짜 캐시 새로고침
+      const currentDateKey = selectedDate.toLocaleDateString("en-CA");
+      queryClient.invalidateQueries({ queryKey: ["tasks", currentDateKey] });
+
       showToast("재시도 이동에 실패했습니다 😞");
     }
   };
@@ -291,17 +309,29 @@ const TaskItem = React.memo(function TaskItem({
     try {
       await moveToArchive(task.id as number);
 
-      const dateKey = selectedDate.toISOString().split("T")[0];
-      // 1. MyDay 캐시에서 즉시 제거 (optimistic)
+      // 🔥 수정: 일관된 날짜 키 사용
+      const dateKey = selectedDate.toLocaleDateString("en-CA");
+
+      // 1. 나의 하루에서 즉시 제거 (optimistic)
       queryClient.setQueryData(["tasks", dateKey], (old: Task[] = []) =>
         old.filter((t) => t.id !== task.id)
       );
 
-      // 2. 보류함만 invalidate (MyDay는 setQueryData로 이미 반영됨)
+      // 2. 나의 하루 캐시 무효화
+      await queryClient.invalidateQueries({ queryKey: ["tasks", dateKey] });
+
+      // 3. 보관함 캐시 무효화 및 리페치 (바로 반영되도록)
       await queryClient.invalidateQueries({ queryKey: ["archiveTasks"] });
+      await queryClient.refetchQueries({ queryKey: ["archiveTasks"] });
 
       showToast("할 일이 보류함으로 이동되었습니다 📦");
-    } catch {
+    } catch (error) {
+      console.error("보류 실패:", error);
+
+      // 실패 시 캐시 롤백
+      const dateKey = selectedDate.toLocaleDateString("en-CA");
+      queryClient.invalidateQueries({ queryKey: ["tasks", dateKey] });
+
       showToast("할 일 보류에 실패했습니다 😞");
     }
   };

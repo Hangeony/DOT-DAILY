@@ -27,7 +27,7 @@ export const getAllTasks = async (): Promise<Task[]> => {
 export const getTasksByDate = async (date: Date | string): Promise<Task[]> => {
   try {
     const dateStr =
-      typeof date === "string" ? date : date.toISOString().split("T")[0];
+      typeof date === "string" ? date : date.toLocaleDateString("en-CA");
     const response = await httpClient.get(`/todos?date=${dateStr}`);
     return response.data.data;
   } catch (error: unknown) {

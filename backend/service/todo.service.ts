@@ -10,6 +10,8 @@ interface ITodo {
 
 // 투두 저장
 export const createTodoService = async (input: ITodo) => {
+  console.log('🔍 createTodoService 입력:', input);
+
   return await prisma.todos.create({
     data: {
       title: input.title,
@@ -29,15 +31,17 @@ export const getAllTodosService = async (userId: number) => {
   });
 };
 
-//투두 특정 날짜 조회
+// 투두 특정 날짜 조회
 export const getTodosByDateService = async (userId: number, date: string) => {
+  console.log('🔍 getTodosByDateService 호출:', { userId, date });
+
   return await prisma.todos.findMany({
     where: { userId, date, status: { in: ['pending', 'retry', 'success'] } },
     orderBy: { createdAt: 'asc' },
   });
 };
 
-//투두 업데이트 (공통 함수)
+// 투두 업데이트 (공통 함수)
 export const updateTodoService = async (
   todoId: number,
   userId: number,
@@ -49,11 +53,17 @@ export const updateTodoService = async (
   },
   statusFilter?: string
 ) => {
+  console.log('🔍 updateTodoService 호출:', {
+    todoId,
+    userId,
+    data,
+    statusFilter,
+  });
+
   const where: any = { id: todoId, userId };
   if (statusFilter) {
     where.status = statusFilter;
   }
-
   return await prisma.todos.updateMany({
     where,
     data: {
@@ -73,7 +83,6 @@ export const deleteTodoService = async (
   if (statusFilter) {
     where.status = statusFilter;
   }
-
   return await prisma.todos.deleteMany({ where });
 };
 
@@ -107,18 +116,25 @@ export const moveToRetryService = async (todoId: number, userId: number) => {
     return { count: 0 };
   }
 
-  // 할 일의 현재 날짜 기준으로 다음날 계산
-  const currentDate = new Date(todo.date);
+  // YYYY-MM-DD 문자열을 파싱할 때 UTC 기준으로 처리
+  const currentDate = new Date(todo.date + 'T00:00:00.000Z');
   const nextDate = new Date(currentDate);
-  nextDate.setDate(currentDate.getDate() + 1);
+  nextDate.setUTCDate(currentDate.getUTCDate() + 1);
   const nextDateString = nextDate.toISOString().split('T')[0];
+
+  console.log('🔍 moveToRetryService 날짜 계산:', {
+    originalDate: todo.date,
+    currentDate: currentDate.toISOString(),
+    nextDate: nextDate.toISOString(),
+    nextDateString,
+  });
 
   return await prisma.todos.updateMany({
     where: { id: todoId, userId },
     data: {
       status: 'retry',
       retryCount: todo.retryCount + 1,
-      date: nextDateString, // 할 일의 현재 날짜 기준 다음날로 이동
+      date: nextDateString,
     },
   });
 };

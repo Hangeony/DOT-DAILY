@@ -10,7 +10,7 @@ import RadioButton from "@/components/ui/Radio/RadioButton";
 import { createTask, updateTask } from "@/lib/api/tasks";
 import { createGuestTask, updateGuestTask } from "@/lib/api/guestTasks";
 import { useQueryClient } from "@tanstack/react-query";
-import { format, parseISO } from "date-fns";
+import { parseISO } from "date-fns";
 import { useToast } from "@/components/ui/Toast/ToastProvider";
 import Image from "next/image";
 
@@ -132,7 +132,8 @@ export default function TaskFormModal({
       const taskData = {
         title: label.trim(),
         priority,
-        date: format(date, "yyyy-MM-dd"),
+        // 🔥 수정: format() 대신 toLocaleDateString() 사용
+        date: date.toLocaleDateString("en-CA"), // YYYY-MM-DD 형식으로 로컬 시간대 기준
       };
 
       if (isGuest) {
@@ -165,9 +166,10 @@ export default function TaskFormModal({
         showToast("새로운 할 일이 등록되었습니다! ✅");
       }
 
-      // React Query 캐시 무효화 (특정 날짜의 tasks 쿼리만 새로고침)
-      const dateKey = format(date, "yyyy-MM-dd");
-      queryClient.invalidateQueries({ queryKey: ["tasks", dateKey] });
+      // 🔥 수정: 캐시 키도 동일한 방식으로
+      const dateKey = date.toLocaleDateString("en-CA");
+      await queryClient.invalidateQueries({ queryKey: ["tasks", dateKey] });
+      await queryClient.refetchQueries({ queryKey: ["tasks", dateKey] });
 
       onClose();
     } catch {

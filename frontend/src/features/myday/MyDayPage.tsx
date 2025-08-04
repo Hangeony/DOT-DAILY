@@ -17,6 +17,7 @@ import dynamic from "next/dynamic";
 import { DropResult } from "@hello-pangea/dnd";
 import useAuthStore from "@/store/useAuthStore";
 import { CommonTask } from "@/types";
+
 // ⚡ 성능 최적화: Dynamic imports 개선
 const DragDropWrapper = dynamic(
   () => import("@/components/ui/DragDrop/DragDropWrapper"),
@@ -118,39 +119,12 @@ export default function MyDayPage() {
     isError,
     error,
   } = useQuery({
-    queryKey: ["tasks", selectedDate.toISOString().split("T")[0]],
+    // 🔥 수정: 쿼리 키를 일관된 방식으로
+    queryKey: ["tasks", selectedDate.toLocaleDateString("en-CA")],
     queryFn: () => getTasksByDate(selectedDate),
     enabled: isInitialized && !isGuest && typeof window !== "undefined",
     staleTime: 1000 * 60 * 5, // 5분간 fresh 상태 유지
   });
-
-  // 🚀 성능 최적화: 프리페칭 변수 제거 (사용하지 않음)
-  // const nextDate = useMemo(() => {
-  //   const next = new Date(selectedDate);
-  //   next.setDate(next.getDate() + 1);
-  //   return next;
-  // }, [selectedDate]);
-
-  // const prevDate = useMemo(() => {
-  //   const prev = new Date(selectedDate);
-  //   prev.setDate(prev.getDate() - 1);
-  //   return prev;
-  // }, [selectedDate]);
-
-  // 🚀 성능 최적화: 프리페칭 비활성화 (필요시에만 로드)
-  // useQuery({
-  //   queryKey: ["tasks", nextDate.toISOString().split("T")[0]],
-  //   queryFn: () => getTasksByDate(nextDate),
-  //   enabled: isInitialized && !isGuest && typeof window !== "undefined",
-  //   staleTime: 1000 * 60 * 10,
-  // });
-
-  // useQuery({
-  //   queryKey: ["tasks", prevDate.toISOString().split("T")[0]],
-  //   queryFn: () => getTasksByDate(prevDate),
-  //   enabled: isInitialized && !isGuest && typeof window !== "undefined",
-  //   staleTime: 1000 * 60 * 10,
-  // });
 
   // 게스트 모드용 상태
   const { guestTasks, refreshGuestTasks } = useGuestTasks(selectedDate);
@@ -270,8 +244,8 @@ export default function MyDayPage() {
           await updateTask(updated.id, {
             priority: newPriority as "must" | "should" | "remind",
           });
-          // 특정 날짜의 캐시만 무효화
-          const dateKey = selectedDate.toISOString().split("T")[0];
+          // 🔥 수정: 캐시 키를 일관된 방식으로
+          const dateKey = selectedDate.toLocaleDateString("en-CA");
           queryClient.invalidateQueries({ queryKey: ["tasks", dateKey] });
         }
       }

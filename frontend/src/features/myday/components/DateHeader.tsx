@@ -7,6 +7,7 @@ import { useDateStore } from "@/store/useDateStore";
 import { motion, useMotionValue, useAnimation } from "framer-motion";
 import { useEffect, useMemo, useCallback } from "react";
 import React from "react";
+import { getTodayInKorea } from "@/utils/dateUtils";
 
 const DateHeader = React.memo(() => {
   const { selectedDate, setSelectedDate } = useDateStore();
@@ -15,24 +16,20 @@ const DateHeader = React.memo(() => {
   const gap = 50;
   const centerIndex = 3;
 
-  // 7개 날짜 배열 생성을 메모이제이션
+  // 🔥 수정: selectedDate를 기준으로 7개 날짜 배열 생성
   const dates = useMemo(() => {
     const arr = [];
-    // 항상 오늘 날짜를 기준으로 생성
-    const today = new Date();
-    const koreaTime = new Date(
-      today.toLocaleString("en-US", { timeZone: "Asia/Seoul" })
-    );
-    // 시간을 00:00:00으로 설정하여 날짜만 비교하도록 함
-    koreaTime.setHours(0, 0, 0, 0);
+    const baseDate = new Date(selectedDate);
+    baseDate.setHours(0, 0, 0, 0); // 시간을 0으로 설정
 
     for (let i = -3; i <= 3; i++) {
-      const d = new Date(koreaTime);
-      d.setDate(koreaTime.getDate() + i);
+      const d = new Date(baseDate);
+      d.setDate(baseDate.getDate() + i);
+      d.setHours(0, 0, 0, 0); // 시간을 0으로 설정하여 날짜만 처리
       arr.push(d);
     }
     return arr;
-  }, []); // selectedDate 의존성 제거
+  }, [selectedDate]); // 🔥 의존성에 selectedDate 추가
 
   const x = useMotionValue(0);
   const controls = useAnimation();
@@ -51,10 +48,12 @@ const DateHeader = React.memo(() => {
   );
 
   useEffect(() => {
-    // requestAnimationFrame을 사용하여 레이아웃 계산을 다음 프레임으로 지연
+    // 🔥 수정: 선택된 날짜는 항상 중앙(index 3)에 위치
+    const targetX = 0; // 중앙 위치
+
     const rafId = requestAnimationFrame(() => {
-      controls.start({ x: 0 });
-      x.set(0);
+      controls.start({ x: targetX });
+      x.set(targetX);
     });
 
     return () => cancelAnimationFrame(rafId);
@@ -78,18 +77,15 @@ const DateHeader = React.memo(() => {
         onDragEnd={handleDragEnd}
       >
         {dates.map((date, idx) => {
+          // 🔥 수정: 중앙 인덱스(3)가 항상 선택된 날짜
           const isCenter = idx === centerIndex;
-          // 한국 시간 기준으로 오늘 날짜와 비교
-          const today = new Date();
-          const koreaToday = new Date(
-            today.toLocaleString("en-US", { timeZone: "Asia/Seoul" })
-          );
-          koreaToday.setHours(0, 0, 0, 0);
-          const isToday = isSameDay(date, koreaToday);
+          // 오늘 날짜와 비교
+          const today = getTodayInKorea();
+          const isToday = isSameDay(date, today);
 
           return (
             <div
-              key={idx}
+              key={`${date.getTime()}-${idx}`} // 🔥 수정: 고유한 키 생성
               className={clsx(
                 "flex flex-row items-center transition-all cursor-pointer",
                 {
